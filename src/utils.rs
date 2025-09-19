@@ -1,14 +1,22 @@
-use crate::error::{Error, Result};
+use crate::{
+    comments::global_comments,
+    error::{Error, Result},
+};
 use std::{
     ffi::OsStr,
     path::{Path, PathBuf},
 };
 use teloxide::{
     Bot,
+    payloads::{SendPhotoSetters, SendVideoSetters},
     prelude::Requester,
     types::{ChatId, InputFile},
 };
 use tokio::{fs::File, io::AsyncReadExt};
+
+const TELEGRAM_CAPTION_LIMIT: usize = 1024;
+static VIDEO_EXTS: &[&str] = &["mp4", "webm", "mov", "mkv", "avi"];
+static IMAGE_EXTS: &[&str] = &["jpg", "jpeg", "png", "webp"];
 
 /// Simple media kind enum shared by handlers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,9 +25,6 @@ pub enum MediaKind {
     Image,
     Unknown,
 }
-
-static VIDEO_EXTS: &[&str] = &["mp4", "webm", "mov", "mkv", "avi"];
-static IMAGE_EXTS: &[&str] = &["jpg", "jpeg", "png", "webp"];
 
 /// Detect media kind first by extension, then by content/magic (sync).
 /// NOTE: `infer::get_from_path` is blocking — use `detect_media_kind_async` in
@@ -94,14 +99,32 @@ pub async fn send_media_from_path(
     kind: Option<MediaKind>,
 ) -> Result<()> {
     let kind = kind.unwrap_or_else(|| detect_media_kind(&path));
+
+    let caption_opt = global_comments().map(|c| {
+        let mut caption = c.build_caption();
+        if caption.chars().count() > TELEGRAM_CAPTION_LIMIT {
+            caption = caption.chars().take(TELEGRAM_CAPTION_LIMIT - 1).collect();
+            caption.push_str("...");
+        }
+        caption
+    });
+
     match kind {
         MediaKind::Video => {
             let video = InputFile::file(path);
-            bot.send_video(chat_id, video).await.map_err(Error::from)?;
+            let mut req = bot.send_video(chat_id, video);
+            if let Some(c) = caption_opt {
+                req = req.caption(c);
+            }
+            req.await.map_err(Error::from)?;
         }
         MediaKind::Image => {
             let photo = InputFile::file(path);
-            bot.send_photo(chat_id, photo).await.map_err(Error::from)?;
+            let mut req = bot.send_photo(chat_id, photo);
+            if let Some(c) = caption_opt {
+                req = req.caption(c);
+            }
+            req.await.map_err(Error::from)?;
         }
         MediaKind::Unknown => {
             bot.send_message(chat_id, "No supported media found")

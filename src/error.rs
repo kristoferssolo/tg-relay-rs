@@ -3,7 +3,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("io error: {0}")]
-    Io(#[from] std::io::Error),
+    Io(#[from] tokio::io::Error),
 
     #[error("instaloader failed: {0}")]
     InstaloaderFaileled(String),
@@ -22,6 +22,13 @@ pub enum Error {
 
     #[error("other: {0}")]
     Other(String),
+}
+
+impl Error {
+    #[inline]
+    pub fn other(text: impl Into<String>) -> Self {
+        Self::Other(text.into())
+    }
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

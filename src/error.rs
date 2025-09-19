@@ -6,7 +6,10 @@ pub enum Error {
     Io(#[from] tokio::io::Error),
 
     #[error("instaloader failed: {0}")]
-    InstaloaderFaileled(String),
+    InstaloaderFailed(String),
+
+    #[error("yt-dpl failed: {0}")]
+    YTDLPFailed(String),
 
     #[error("no media found")]
     NoMediaFound,
@@ -28,6 +31,16 @@ impl Error {
     #[inline]
     pub fn other(text: impl Into<String>) -> Self {
         Self::Other(text.into())
+    }
+
+    #[inline]
+    pub fn instaloader_failed(text: impl Into<String>) -> Self {
+        Self::InstaloaderFailed(text.into())
+    }
+
+    #[inline]
+    pub fn ytdlp_failed(text: impl Into<String>) -> Self {
+        Self::YTDLPFailed(text.into())
     }
 }
 

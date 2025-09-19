@@ -1,4 +1,5 @@
 mod instagram;
+mod youtube;
 
 use crate::error::Result;
 use teloxide::{Bot, types::ChatId};
@@ -26,3 +27,4 @@ impl Clone for Box<dyn SocialHandler> {
 }
 
 pub use instagram::InstagramHandler;
+pub use youtube::YouTubeShortsHandler;

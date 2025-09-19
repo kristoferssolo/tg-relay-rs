@@ -3,7 +3,7 @@ use std::sync::Arc;
 use teloxide::{Bot, prelude::Requester, respond, types::Message};
 use tg_relay_rs::{
     comments::{Comments, init_global_comments},
-    handlers::{InstagramHandler, SocialHandler},
+    handlers::{InstagramHandler, SocialHandler, YouTubeShortsHandler},
     telemetry::setup_logger,
 };
 use tracing::{error, info, warn};
@@ -27,7 +27,8 @@ async fn main() -> color_eyre::Result<()> {
     let bot = Bot::from_env();
     info!("bot starting");
 
-    let handlers = vec![Arc::new(InstagramHandler)];
+    let handlers: Vec<Arc<dyn SocialHandler>> =
+        vec![Arc::new(InstagramHandler), Arc::new(YouTubeShortsHandler)];
 
     teloxide::repl(bot.clone(), move |bot: Bot, msg: Message| {
         // clone the handlers vector into the closure

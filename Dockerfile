@@ -6,7 +6,7 @@ COPY . .
 
 RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
-    pkg-config libssl-dev ca-certificates \
+    pkg-config libssl-dev ca-certificates ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo build --release
@@ -23,8 +23,9 @@ RUN useradd --create-home --shell /bin/bash app
 WORKDIR /home/app
 USER app
 
-RUN uv tool install instaloader \
-    && instaloader --version
+RUN uv tool install instaloader yt-dlp \
+    && instaloader --version \
+    && yt-dlp --version
 
 COPY --from=builder /app/target/release/tg-relay-rs /usr/local/bin/tg-relay-rs
 

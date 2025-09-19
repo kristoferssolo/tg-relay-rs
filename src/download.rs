@@ -88,11 +88,9 @@ pub async fn download_instaloader(shortcode: &str) -> Result<DownloadResult> {
 /// # Errors
 ///
 /// - Propagates `run_command_in_tempdir` errors.
-pub async fn download_ytdlp(url: &str, format: &str) -> Result<DownloadResult> {
+pub async fn download_ytdlp(url: &str) -> Result<DownloadResult> {
     let args = [
         "--no-playlist",
-        "-f",
-        format,
         "--merge-output-format",
         "mp4",
         "--restrict-filenames",

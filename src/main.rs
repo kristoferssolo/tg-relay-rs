@@ -7,7 +7,11 @@ use color_eyre::{
 };
 use dotenv::dotenv;
 use regex::Regex;
-use std::{fs::read_dir, process::Stdio};
+use std::{
+    fs::{File, read_dir},
+    io::Read,
+    path::Path,
+};
 use teloxide::{
     Bot,
     prelude::Requester,
@@ -18,8 +22,18 @@ use tempfile::tempdir;
 use tokio::process::Command;
 use tracing::error;
 
+static VIDEO_EXTS: &[&str] = &["mp4", "webm"];
+static IMAGE_EXTS: &[&str] = &["jpg", "jpeg", "png"];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MediaKind {
+    Video,
+    Image,
+    Unknown,
+}
+
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> color_eyre::Result<()> {
     dotenv().ok();
     color_eyre::install()?;
     setup_logger()?;
@@ -62,15 +76,17 @@ async fn fetch_and_send(bot: &Bot, chat_id: ChatId, shortcode: &str) -> Result<(
     let dir = tempdir().context("create tempdir")?;
     let dir_path = dir.path().to_path_buf();
 
-    let target = format!("--{}", shortcode);
+    dbg!(&dir_path);
+    let target = format!("-{}", shortcode);
+    dbg!(&target);
     let status = Command::new("instaloader")
+        .arg("--dirname-pattern")
         .arg(dir_path.to_string_lossy().as_ref())
-        .arg("--no-metadate-json")
+        .arg("--no-metadata-json")
         .arg("--no-compress-json")
-        // .arg("--quiet")
+        .arg("--quiet")
+        .arg("--")
         .arg(&target)
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
         .status()
         .await
         .context("runnning instaloader")?;
@@ -95,14 +111,69 @@ async fn fetch_and_send(bot: &Bot, chat_id: ChatId, shortcode: &str) -> Result<(
         return Err(eyre!("no media found"));
     }
 
-    let first = &media_files[0];
-    let input = InputFile::file(first.clone());
+    dbg!(&media_files);
 
-    let ext = first.extension().and_then(|s| s.to_str()).unwrap_or("");
-    if matches!(ext, "jpg" | "jpeg") {
-        bot.send_photo(chat_id, input).await?;
-    } else {
+    if let Some(video_path) = media_files.iter().find(|p| is_video(p)) {
+        let input = InputFile::file(video_path.clone());
         bot.send_video(chat_id, input).await?;
+        return Ok(());
     }
+
+    if let Some(image_path) = media_files.iter().find(|p| is_image(p)) {
+        let input = InputFile::file(image_path.clone());
+        bot.send_photo(chat_id, input).await?;
+        return Ok(());
+    }
+
+    bot.send_message(chat_id, "No supported media found")
+        .await?;
+
     Ok(())
+}
+
+fn ext_lower(path: &Path) -> Option<String> {
+    path.extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_ascii_lowercase())
+}
+
+fn kind_by_magic(path: &Path) -> Option<MediaKind> {
+    let mut f = File::open(path).ok()?;
+    let mut buf = [0u8; 8192];
+
+    let n = f.read(&mut buf).ok()?;
+    if n == 0 {
+        return None;
+    }
+
+    if let Some(kind) = infer::get(&buf[..n]) {
+        let mt = kind.mime_type();
+        if mt.starts_with("video/") {
+            return Some(MediaKind::Video);
+        }
+        if mt.starts_with("image/") {
+            return Some(MediaKind::Image);
+        }
+    }
+    None
+}
+
+fn detect_media_kind(path: &Path) -> MediaKind {
+    if let Some(ext) = ext_lower(path) {
+        if VIDEO_EXTS.iter().any(|e| e.eq_ignore_ascii_case(&ext)) {
+            return MediaKind::Video;
+        }
+        if IMAGE_EXTS.iter().any(|e| e.eq_ignore_ascii_case(&ext)) {
+            return MediaKind::Image;
+        }
+    }
+    kind_by_magic(path).unwrap_or(MediaKind::Unknown)
+}
+
+fn is_video(path: &Path) -> bool {
+    detect_media_kind(path) == MediaKind::Video
+}
+
+fn is_image(path: &Path) -> bool {
+    detect_media_kind(path) == MediaKind::Image
 }

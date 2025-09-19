@@ -93,6 +93,8 @@ pub async fn download_ytdlp(url: &str, format: &str) -> Result<DownloadResult> {
         "--no-playlist",
         "-f",
         format,
+        "--merge-output-format",
+        "mp4",
         "--restrict-filenames",
         "-o",
         "%(id)s.%(ext)s",

@@ -23,8 +23,10 @@ RUN useradd --create-home --shell /bin/bash app
 WORKDIR /home/app
 USER app
 
-RUN uv tool install instaloader yt-dlp \
-    && instaloader --version \
+RUN uv tool install instaloader \
+    && instaloader --version
+
+RUN uv tool install yt-dlp \
     && yt-dlp --version
 
 COPY --from=builder /app/target/release/tg-relay-rs /usr/local/bin/tg-relay-rs

@@ -44,8 +44,7 @@ impl SocialHandler for YouTubeShortsHandler {
 
     async fn handle(&self, bot: &Bot, chat_id: ChatId, url: String) -> Result<()> {
         info!(handler = %self.name(), url = %url, "handling youtube code");
-        let format = "bestvideo[ext=mp4]+bestaudio/best";
-        let dr = download_ytdlp(&url, format).await?;
+        let dr = download_ytdlp(&url, "best").await?;
         process_download_result(bot, chat_id, dr).await
     }
 

@@ -1,0 +1,14 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BINARY_NAME: tg-relay-rs
+    environment:
+      TELOXIDE_TOKEN: ${TELOXIDE_TOKEN}
+      RUST_LOG: ${RUST_LOG:-info}
+    restart: unless-stopped
+    # If you need persistent storage (e.g. caching):
+    volumes:
+      - ./data:/app/data

@@ -49,6 +49,7 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 
     // collect files produced in tempdir (async)
     let mut rd = read_dir(&cwd).await?;
+    dbg!(&rd);
     let mut files = Vec::new();
     while let Some(entry) = rd.next_entry().await? {
         if entry.file_type().await?.is_file() {
@@ -73,6 +74,7 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 /// - Propagates `run_command_in_tempdir` errors.
 pub async fn download_instaloader(shortcode: &str) -> Result<DownloadResult> {
     let args = [
+        "--dirname-pattern=.",
         "--no-metadata-json",
         "--no-compress-json",
         "--quiet",

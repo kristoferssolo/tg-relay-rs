@@ -46,7 +46,7 @@ async fn main() -> color_eyre::Result<()> {
                                 error!(%err, "handler failed");
 
                                 let _ = bot_for_task
-                                    .send_message(chat, "Failed to fetch media, you foking dokey.")
+                                    .send_message(chat, "Failed to fetch media, you foking donkey.")
                                     .await;
                             }
                         });

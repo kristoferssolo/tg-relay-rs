@@ -3,7 +3,7 @@ use crate::{
     error::Result,
 };
 use regex::Regex;
-use std::sync::OnceLock;
+use std::{env, sync::OnceLock};
 use teloxide::{Bot, types::ChatId};
 use tracing::info;
 
@@ -44,7 +44,8 @@ impl SocialHandler for YouTubeShortsHandler {
 
     async fn handle(&self, bot: &Bot, chat_id: ChatId, url: String) -> Result<()> {
         info!(handler = %self.name(), url = %url, "handling youtube code");
-        let dr = download_ytdlp(&url).await?;
+        let cookies_path = env::var("COOKIES_PATH");
+        let dr = download_ytdlp(&url, cookies_path.as_deref().ok()).await?;
         process_download_result(bot, chat_id, dr).await
     }
 

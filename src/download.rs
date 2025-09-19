@@ -88,16 +88,23 @@ pub async fn download_instaloader(shortcode: &str) -> Result<DownloadResult> {
 /// # Errors
 ///
 /// - Propagates `run_command_in_tempdir` errors.
-pub async fn download_ytdlp(url: &str) -> Result<DownloadResult> {
-    let args = [
+pub async fn download_ytdlp(url: &str, cookies: Option<&str>) -> Result<DownloadResult> {
+    let mut args = vec![
         "--no-playlist",
         "--merge-output-format",
         "mp4",
         "--restrict-filenames",
         "-o",
         "%(id)s.%(ext)s",
-        url,
     ];
+
+    if let Some(c) = cookies {
+        args.push("--cookies");
+        args.push(c);
+    }
+
+    args.push(url);
+
     run_command_in_tempdir("yt-dlp", &args).await
 }
 

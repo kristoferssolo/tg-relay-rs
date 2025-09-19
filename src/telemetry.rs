@@ -1,9 +1,8 @@
-use color_eyre::Result;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
-/// # Errors
-pub fn setup_logger() -> Result<()> {
+/// Initialise tracing with bunyan-style JSON output.
+pub fn setup_logger() {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into());
     let formatter = BunyanFormattingLayer::new("tg-relay-rs".into(), std::io::stdout);
 
@@ -12,6 +11,4 @@ pub fn setup_logger() -> Result<()> {
         .with(JsonStorageLayer)
         .with(formatter)
         .init();
-
-    Ok(())
 }

@@ -36,25 +36,25 @@ enum MediaKind {
 async fn main() -> color_eyre::Result<()> {
     dotenv().ok();
     color_eyre::install()?;
-    setup_logger()?;
+    setup_logger();
 
     let bot = Bot::from_env();
 
     teloxide::repl(bot, |bot: Bot, msg: Message| async move {
-        if let Some(text) = msg.text() {
-            if let Some(shortcode) = extract_instagram_shortcode(text) {
-                let bot_cloned = bot.clone();
-                let chat = msg.chat.id;
+        if let Some(text) = msg.text()
+            && let Some(shortcode) = extract_instagram_shortcode(text)
+        {
+            let bot_cloned = bot.clone();
+            let chat = msg.chat.id;
 
-                tokio::spawn(async move {
-                    if let Err(e) = fetch_and_send(&bot_cloned, chat, &shortcode).await {
-                        error!("error fetching/sending: {:?}", e);
-                        let _ = bot_cloned
-                            .send_message(chat, "Failed to fetch Instagram media.")
-                            .await;
-                    }
-                });
-            }
+            tokio::spawn(async move {
+                if let Err(e) = fetch_and_send(&bot_cloned, chat, &shortcode).await {
+                    error!("error fetching/sending: {:?}", e);
+                    let _ = bot_cloned
+                        .send_message(chat, "Failed to fetch Instagram media.")
+                        .await;
+                }
+            });
         }
         respond(())
     })
@@ -77,7 +77,7 @@ async fn fetch_and_send(bot: &Bot, chat_id: ChatId, shortcode: &str) -> Result<(
     let dir_path = dir.path().to_path_buf();
 
     dbg!(&dir_path);
-    let target = format!("-{}", shortcode);
+    let target = format!("-{shortcode}");
     dbg!(&target);
     let status = Command::new("instaloader")
         .arg("--dirname-pattern")
@@ -134,7 +134,7 @@ async fn fetch_and_send(bot: &Bot, chat_id: ChatId, shortcode: &str) -> Result<(
 fn ext_lower(path: &Path) -> Option<String> {
     path.extension()
         .and_then(|s| s.to_str())
-        .map(|s| s.to_ascii_lowercase())
+        .map(str::to_ascii_lowercase)
 }
 
 fn kind_by_magic(path: &Path) -> Option<MediaKind> {

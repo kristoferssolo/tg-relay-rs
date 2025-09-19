@@ -12,4 +12,4 @@ services:
     restart: unless-stopped
     volumes:
       - ./comments.txt:/app/comments.txt:ro
-      - ${HOME}/.config/yt-cookies.txt:/app/yt-cookies.txt:ro
+      - /etc/secrets/yt-cookies.txt:/app/yt-cookies.txt:ro

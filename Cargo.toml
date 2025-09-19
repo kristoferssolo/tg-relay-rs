@@ -1,6 +1,25 @@
 [package]
 name = "tg-relay-rs"
 version = "0.1.0"
+authors = ["Kristofers Solo <dev@kristofers.xyz>"]
+license = "MIT"
 edition = "2024"
 
 [dependencies]
+color-eyre = "0.6"
+dotenv = "0.15"
+regex = "1.11"
+teloxide = { version = "0.17", features = ["macros"] }
+tempfile = "3"
+thiserror = "2.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "process"] }
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-bunyan-formatter = { version = "0.3", default-features = false }
+tracing-log = "0.2.0"
+tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
+
+[lints.clippy]
+pedantic = "warn"
+nursery = "warn"
+unwrap_used = "warn"

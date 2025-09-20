@@ -49,7 +49,6 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 
     // collect files produced in tempdir (async)
     let mut rd = read_dir(&cwd).await?;
-    dbg!(&rd);
     let mut files = Vec::new();
     while let Some(entry) = rd.next_entry().await? {
         if entry.file_type().await?.is_file() {
@@ -95,6 +94,8 @@ pub async fn download_ytdlp(url: &str, cookies: Option<&str>) -> Result<Download
         "--no-playlist",
         "--merge-output-format",
         "mp4",
+        "-f",
+        "bestvideo[ext=mp4][vcodec^=avc1]+bestaudio/best",
         "--restrict-filenames",
         "-o",
         "%(id)s.%(ext)s",

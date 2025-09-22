@@ -1,5 +1,5 @@
 use crate::{
-    comments::global_comments,
+    comments::{Comments, global_comments},
     error::{Error, Result},
 };
 use std::{
@@ -13,10 +13,10 @@ use teloxide::{
     types::{ChatId, InputFile},
 };
 use tokio::{fs::File, io::AsyncReadExt};
+use tracing::warn;
 
-const TELEGRAM_CAPTION_LIMIT: usize = 1024;
-static VIDEO_EXTS: &[&str] = &["mp4", "webm", "mov", "mkv", "avi"];
-static IMAGE_EXTS: &[&str] = &["jpg", "jpeg", "png", "webp"];
+pub const VIDEO_EXTSTENSIONS: &[&str] = &["mp4", "webm", "mov", "mkv", "avi", "m4v", "3gp"];
+pub const IMAGE_EXTSTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "bmp"];
 
 /// Simple media kind enum shared by handlers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,26 +27,25 @@ pub enum MediaKind {
 }
 
 /// Detect media kind first by extension, then by content/magic (sync).
-/// NOTE: `infer::get_from_path` is blocking — use `detect_media_kind_async` in
-/// async contexts to avoid blocking the Tokio runtime.
 pub fn detect_media_kind(path: &Path) -> MediaKind {
     if let Some(ext) = path.extension().and_then(OsStr::to_str) {
-        if VIDEO_EXTS.iter().any(|e| e.eq_ignore_ascii_case(ext)) {
+        let compare = |e: &&str| e.eq_ignore_ascii_case(ext);
+        if VIDEO_EXTSTENSIONS.iter().any(compare) {
             return MediaKind::Video;
         }
-        if IMAGE_EXTS.iter().any(|e| e.eq_ignore_ascii_case(ext)) {
+        if IMAGE_EXTSTENSIONS.iter().any(compare) {
             return MediaKind::Image;
         }
     }
 
+    // Fallback to MIME type detection
     if let Ok(Some(kind)) = infer::get_from_path(path) {
-        let mt = kind.mime_type();
-        if mt.starts_with("video/") {
-            return MediaKind::Video;
-        }
-        if mt.starts_with("image/") {
-            return MediaKind::Image;
-        }
+        let mime_type = kind.mime_type();
+        return match mime_type.split('/').next() {
+            Some("video") => MediaKind::Video,
+            Some("image") => MediaKind::Image,
+            _ => MediaKind::Unknown,
+        };
     }
 
     MediaKind::Unknown
@@ -56,21 +55,24 @@ pub fn detect_media_kind(path: &Path) -> MediaKind {
 /// sample asynchronously and run `infer::get` on the buffer.
 pub async fn detect_media_kind_async(path: &Path) -> MediaKind {
     if let Some(ext) = path.extension().and_then(OsStr::to_str) {
-        if VIDEO_EXTS.iter().any(|e| e.eq_ignore_ascii_case(ext)) {
+        let compare = |e: &&str| e.eq_ignore_ascii_case(ext);
+        if VIDEO_EXTSTENSIONS.iter().any(compare) {
             return MediaKind::Video;
         }
-        if IMAGE_EXTS.iter().any(|e| e.eq_ignore_ascii_case(ext)) {
+        if IMAGE_EXTSTENSIONS.iter().any(compare) {
             return MediaKind::Image;
         }
     }
 
     // Read a small prefix (8 KiB) asynchronously and probe
-    if let Ok(mut f) = File::open(path).await {
-        let mut buf = vec![0u8; 8192];
-        match f.read(&mut buf).await {
-            Ok(n) if n > 0 => {
-                buf.truncate(n);
-                if let Some(k) = infer::get(&buf) {
+    match File::open(path).await {
+        Ok(mut file) => {
+            let mut buffer = vec![0u8; 8192];
+            if let Ok(n) = file.read(&mut buffer).await
+                && n > 0
+            {
+                buffer.truncate(n);
+                if let Some(k) = infer::get(&buffer) {
                     let mt = k.mime_type();
                     if mt.starts_with("video/") {
                         return MediaKind::Video;
@@ -80,8 +82,8 @@ pub async fn detect_media_kind_async(path: &Path) -> MediaKind {
                     }
                 }
             }
-            _ => {}
         }
+        Err(e) => warn!(path = ?path.display(), "Failed to read file for media detection: {e}"),
     }
 
     MediaKind::Unknown
@@ -96,18 +98,11 @@ pub async fn send_media_from_path(
     bot: &Bot,
     chat_id: ChatId,
     path: PathBuf,
-    kind: Option<MediaKind>,
+    kind: MediaKind,
 ) -> Result<()> {
-    let kind = kind.unwrap_or_else(|| detect_media_kind(&path));
-
-    let caption_opt = global_comments().map(|c| {
-        let mut caption = c.build_caption();
-        if caption.chars().count() > TELEGRAM_CAPTION_LIMIT {
-            caption = caption.chars().take(TELEGRAM_CAPTION_LIMIT - 1).collect();
-            caption.push_str("...");
-        }
-        caption
-    });
+    let caption_opt = global_comments()
+        .map(Comments::build_caption)
+        .filter(|caption| !caption.is_empty());
 
     match kind {
         MediaKind::Video => {
@@ -116,7 +111,7 @@ pub async fn send_media_from_path(
             if let Some(c) = caption_opt {
                 req = req.caption(c);
             }
-            req.await.map_err(Error::from)?;
+            req.await?;
         }
         MediaKind::Image => {
             let photo = InputFile::file(path);
@@ -124,14 +119,34 @@ pub async fn send_media_from_path(
             if let Some(c) = caption_opt {
                 req = req.caption(c);
             }
-            req.await.map_err(Error::from)?;
+            req.await?;
         }
         MediaKind::Unknown => {
             bot.send_message(chat_id, "No supported media found")
-                .await
-                .map_err(Error::from)?;
+                .await?;
             return Err(Error::UnknownMediaKind);
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detect_media_kind_by_extension() {
+        assert_eq!(detect_media_kind(Path::new("video.mp4")), MediaKind::Video);
+        assert_eq!(detect_media_kind(Path::new("image.jpg")), MediaKind::Image);
+        assert_eq!(
+            detect_media_kind(Path::new("unknown.txt")),
+            MediaKind::Unknown
+        );
+    }
+
+    #[test]
+    fn media_kind_case_insensitive() {
+        assert_eq!(detect_media_kind(Path::new("VIDEO.MP4")), MediaKind::Video);
+        assert_eq!(detect_media_kind(Path::new("IMAGE.JPG")), MediaKind::Image);
+    }
 }

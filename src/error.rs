@@ -17,11 +17,20 @@ pub enum Error {
     #[error("unknown media kind")]
     UnknownMediaKind,
 
+    #[error("validation failed: {0}")]
+    ValidationFailed(String),
+
     #[error("teloxide error: {0}")]
     Teloxide(#[from] teloxide::RequestError),
 
     #[error("join error: {0}")]
     Join(#[from] tokio::task::JoinError),
+
+    #[error("rate limit exceeded")]
+    RateLimit,
+
+    #[error("")]
+    QuoteError(#[from] shlex::QuoteError),
 
     #[error("other: {0}")]
     Other(String),
@@ -41,6 +50,11 @@ impl Error {
     #[inline]
     pub fn ytdlp_failed(text: impl Into<String>) -> Self {
         Self::YTDLPFailed(text.into())
+    }
+
+    #[inline]
+    pub fn validation_falied(text: impl Into<String>) -> Self {
+        Self::ValidationFailed(text.into())
     }
 }
 

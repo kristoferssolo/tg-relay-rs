@@ -8,7 +8,6 @@ use crate::{
 use futures::{StreamExt, stream};
 use std::{
     cmp::min,
-    env,
     ffi::OsStr,
     fs::{self, metadata},
     path::{Path, PathBuf},
@@ -130,18 +129,13 @@ pub async fn download_ytdlp<P: AsRef<Path>>(
     url: &str,
     cookies_path: Option<P>,
 ) -> Result<DownloadResult> {
-    let format_selector = env::var("YTDLP_FORMAT").unwrap_or_else(|_| "best".into());
-    info!(format_selector = format_selector, "video format");
-
     let base_args = [
         "--no-playlist",
-        "--merge-output-format",
+        "-t",
         "mp4",
-        "-f",
-        // format_selector
         "--restrict-filenames",
         "-o",
-        "%(id)s.%(ext)s",
+        "%(title)s.%(ext)s",
         "--no-warnings",
         "--quiet",
     ];
@@ -150,11 +144,6 @@ pub async fn download_ytdlp<P: AsRef<Path>>(
         .iter()
         .map(ToString::to_string)
         .collect::<Vec<_>>();
-
-    match args.iter().position(|s| s == "-f") {
-        Some(pos) => args.insert(pos + 1, format_selector),
-        None => args.extend(["-f".into(), format_selector]),
-    }
 
     if let Some(cookie_path) = cookies_path {
         let path = cookie_path.as_ref();

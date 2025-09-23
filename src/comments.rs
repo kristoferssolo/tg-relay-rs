@@ -107,7 +107,7 @@ pub fn init_global_comments(comments: Comments) -> Result<()> {
         .map_err(|_| Error::other("comments already initialized"))
 }
 
-/// Get global comments (if initialized). Returns Option<&'static Comments>.
+/// Get global comments (if initialized).
 #[inline]
 #[must_use]
 pub fn global_comments() -> Option<&'static Comments> {

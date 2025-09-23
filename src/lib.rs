@@ -4,4 +4,3 @@ pub mod error;
 pub mod handlers;
 pub mod telemetry;
 pub mod utils;
-pub mod validate;

@@ -8,5 +8,5 @@ pub fn setup_logger() {
     tracing_subscriber::registry()
         .with(env_filter)
         .with(formatter)
-        .init()
+        .init();
 }

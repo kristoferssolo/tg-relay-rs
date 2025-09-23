@@ -2,18 +2,15 @@ use crate::{
     comments::{Comments, global_comments},
     error::{Error, Result},
 };
+use capitalize::Capitalize;
 use std::{
     ffi::OsStr,
+    fmt::Display,
     path::{Path, PathBuf},
 };
-use teloxide::{
-    Bot,
-    payloads::{SendPhotoSetters, SendVideoSetters},
-    prelude::Requester,
-    types::{ChatId, InputFile},
-};
+use teloxide::{prelude::*, types::InputFile};
 use tokio::{fs::File, io::AsyncReadExt};
-use tracing::warn;
+use tracing::{error, info, warn};
 
 pub const VIDEO_EXTSTENSIONS: &[&str] = &["mp4", "webm", "mov", "mkv", "avi", "m4v", "3gp"];
 pub const IMAGE_EXTSTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "bmp"];
@@ -24,6 +21,18 @@ pub enum MediaKind {
     Video,
     Image,
     Unknown,
+}
+
+impl MediaKind {
+    #[must_use]
+    #[inline]
+    pub const fn to_str(&self) -> &str {
+        match self {
+            Self::Video => "video",
+            Self::Image => "image",
+            Self::Unknown => "unknown",
+        }
+    }
 }
 
 /// Detect media kind first by extension, then by content/magic (sync).
@@ -93,7 +102,7 @@ pub async fn detect_media_kind_async(path: &Path) -> MediaKind {
 ///
 /// # Errors
 ///
-/// Returns an error if sending fails or the media kind is unknown.
+/// Returns an `Error::UnknownMediaKind` if sending fails or the media kind is unknown.
 pub async fn send_media_from_path(
     bot: &Bot,
     chat_id: ChatId,
@@ -104,30 +113,44 @@ pub async fn send_media_from_path(
         .map(Comments::build_caption)
         .filter(|caption| !caption.is_empty());
 
+    let input = InputFile::file(path);
+
+    macro_rules! send_msg {
+        ($request_expr:expr) => {{
+            let mut request = $request_expr;
+            if let Some(cap) = caption_opt {
+                request = request.caption(cap);
+            }
+            if let Ok(message) = request.await {
+                info!(message_id = message.id.to_string(), "{} sent", kind);
+            }
+        }};
+    }
+
     match kind {
-        MediaKind::Video => {
-            let video = InputFile::file(path);
-            let mut req = bot.send_video(chat_id, video);
-            if let Some(c) = caption_opt {
-                req = req.caption(c);
-            }
-            req.await?;
-        }
-        MediaKind::Image => {
-            let photo = InputFile::file(path);
-            let mut req = bot.send_photo(chat_id, photo);
-            if let Some(c) = caption_opt {
-                req = req.caption(c);
-            }
-            req.await?;
-        }
+        MediaKind::Video => send_msg!(bot.send_video(chat_id, input)),
+        MediaKind::Image => send_msg!(bot.send_photo(chat_id, input)),
         MediaKind::Unknown => {
             bot.send_message(chat_id, "No supported media found")
                 .await?;
+            error!("No supported media found");
             return Err(Error::UnknownMediaKind);
         }
     }
+
     Ok(())
+}
+
+impl AsRef<str> for MediaKind {
+    fn as_ref(&self) -> &str {
+        self.to_str()
+    }
+}
+
+impl Display for MediaKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.capitalize())
+    }
 }
 
 #[cfg(test)]

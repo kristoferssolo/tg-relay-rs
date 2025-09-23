@@ -124,6 +124,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 
 [[package]]
+name = "capitalize"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b5271031022835ee8c7582fe67403bd6cb3d962095787af7921027234bab5bf"
+
+[[package]]
 name = "cc"
 version = "1.2.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1726,6 +1732,7 @@ name = "tg-relay-rs"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "capitalize",
  "color-eyre",
  "dotenv",
  "futures",

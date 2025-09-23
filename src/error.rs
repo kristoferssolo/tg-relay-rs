@@ -29,9 +29,6 @@ pub enum Error {
     #[error("rate limit exceeded")]
     RateLimit,
 
-    #[error("")]
-    QuoteError(#[from] shlex::QuoteError),
-
     #[error("other: {0}")]
     Other(String),
 }

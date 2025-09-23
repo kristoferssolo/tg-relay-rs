@@ -121,22 +121,24 @@ pub async fn download_instaloader(shortcode: &str) -> Result<DownloadResult> {
     run_command_in_tempdir("instaloader", &args).await
 }
 
-/// Download a URL with yt-dlp. `format` can be "best" or a merged selector
-/// like "bestvideo[ext=mp4]+bestaudio/best".
+/// Download a URL with yt-dlp.
 ///
 /// # Errors
 ///
 /// - Propagates `run_command_in_tempdir` errors.
-pub async fn download_ytdlp(url: &str, cookies: Option<&str>) -> Result<DownloadResult> {
+pub async fn download_ytdlp<P: AsRef<Path>>(
+    url: &str,
+    cookies_path: Option<P>,
+) -> Result<DownloadResult> {
     let default_format = "bestvideo[ext=mp4][vcodec^=avc1]+bestaudio/best";
     let format_selector = env::var("YTDLP_FORMAT").unwrap_or_else(|_| default_format.into());
 
-    let mut args = vec![
+    let base_args = [
         "--no-playlist",
         "--merge-output-format",
         "mp4",
         "-f",
-        &format_selector,
+        // format_selector
         "--restrict-filenames",
         "-o",
         "%(id)s.%(ext)s",
@@ -144,22 +146,31 @@ pub async fn download_ytdlp(url: &str, cookies: Option<&str>) -> Result<Download
         "--quiet",
     ];
 
-    let with_cookies = env::var("COOKIES")
-        .unwrap_or_else(|_| "false".into())
-        .parse::<bool>()
-        .unwrap_or(false);
-    if with_cookies && let Some(cookie_path) = cookies {
-        if Path::new(cookie_path).exists() {
-            args.extend(["--cookies", cookie_path]);
+    let mut args = base_args
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+
+    match args.iter().position(|s| s == "-f") {
+        Some(pos) => args.insert(pos + 1, format_selector),
+        None => args.extend(["-f".into(), format_selector]),
+    }
+
+    if let Some(cookie_path) = cookies_path {
+        let path = cookie_path.as_ref();
+        let path_str = path.to_string_lossy().to_string();
+        if path.exists() {
+            args.extend(["--cookies".into(), path_str]);
         } else {
-            warn!("Cookies file not found: {cookie_path}");
+            warn!("Cookies file not found: {path_str}");
         }
     }
 
-    let quoted_url = shlex::try_quote(url)?;
-    args.push(&quoted_url);
+    args.push(url.into());
 
-    run_command_in_tempdir("yt-dlp", &args).await
+    let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
+
+    run_command_in_tempdir("yt-dlp", &args_ref).await
 }
 
 /// Post-process a `DownloadResult`.

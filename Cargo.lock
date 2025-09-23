@@ -1746,7 +1746,6 @@ dependencies = [
  "rand",
  "regex",
  "serde",
- "shlex",
  "teloxide",
  "tempfile",
  "thiserror 2.0.16",

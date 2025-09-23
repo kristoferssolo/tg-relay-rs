@@ -130,8 +130,8 @@ pub async fn download_ytdlp<P: AsRef<Path>>(
     url: &str,
     cookies_path: Option<P>,
 ) -> Result<DownloadResult> {
-    let default_format = "bestvideo[ext=mp4][vcodec^=avc1]+bestaudio/best";
-    let format_selector = env::var("YTDLP_FORMAT").unwrap_or_else(|_| default_format.into());
+    let format_selector = env::var("YTDLP_FORMAT").unwrap_or_else(|_| "best".into());
+    info!(format_selector = format_selector, "Video format");
 
     let base_args = [
         "--no-playlist",

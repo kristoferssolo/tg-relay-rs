@@ -131,7 +131,7 @@ pub async fn download_ytdlp<P: AsRef<Path>>(
     cookies_path: Option<P>,
 ) -> Result<DownloadResult> {
     let format_selector = env::var("YTDLP_FORMAT").unwrap_or_else(|_| "best".into());
-    info!(format_selector = format_selector, "Video format");
+    info!(format_selector = format_selector, "video format");
 
     let base_args = [
         "--no-playlist",

@@ -44,3 +44,4 @@ RUN uv tool install instaloader \
 WORKDIR /app
 COPY --from=builder-rs /app/target/release/tg-relay-rs /usr/local/bin/tg-relay-rs
 CMD ["/usr/local/bin/tg-relay-rs"]
+

@@ -7,9 +7,9 @@ services:
         BINARY_NAME: tg-relay-rs
     environment:
       TELOXIDE_TOKEN: ${TELOXIDE_TOKEN}
-      COOKIES_PATH: ${COOKIES_PATH:-/app/yt-cookies.txt}
+      COOKIES_PATH: /app/yt-cookies.txt
       RUST_LOG: ${RUST_LOG:-info}
     restart: unless-stopped
     volumes:
       - ./comments.txt:/app/comments.txt:ro
-      - /etc/secrets/yt-cookies.txt:/app/yt-cookies.txt
+      - /etc/secrets/yt-cookies.txt:/app/yt-cookies.txt:rw

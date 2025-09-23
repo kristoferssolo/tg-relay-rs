@@ -1,5 +1,3 @@
-pub mod utils;
-
 use crate::error::Result;
 use regex::Regex;
 use std::sync::OnceLock;
@@ -17,6 +15,10 @@ pub trait Validate {
 }
 
 /// Helper function to create a lazy static Regex (reused across impls).
+///
+/// # Panics
+///
+/// If no pattern found
 pub fn lazy_regex(pattern: &str) -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(pattern).expect("failed to compile validation regex"))

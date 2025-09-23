@@ -7,6 +7,7 @@ services:
         BINARY_NAME: tg-relay-rs
     environment:
       TELOXIDE_TOKEN: ${TELOXIDE_TOKEN}
+      YTDLP_FORMAT: ${YTDLP_FORMAT:-best}
       COOKIES_PATH: /app/yt-cookies.txt
       RUST_LOG: ${RUST_LOG:-info}
     restart: unless-stopped

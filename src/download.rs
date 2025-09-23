@@ -144,7 +144,11 @@ pub async fn download_ytdlp(url: &str, cookies: Option<&str>) -> Result<Download
         "--quiet",
     ];
 
-    if let Some(cookie_path) = cookies {
+    let with_cookies = env::var("COOKIES")
+        .unwrap_or_else(|_| "false".into())
+        .parse::<bool>()
+        .unwrap_or(false);
+    if with_cookies && let Some(cookie_path) = cookies {
         if Path::new(cookie_path).exists() {
             args.extend(["--cookies", cookie_path]);
         } else {

@@ -41,5 +41,6 @@ RUN uv tool install instaloader \
     && uv tool install yt-dlp[default] \
     && yt-dlp --version
 
+WORKDIR /app
 COPY --from=builder-rs /app/target/release/tg-relay-rs /usr/local/bin/tg-relay-rs
 CMD ["/usr/local/bin/tg-relay-rs"]

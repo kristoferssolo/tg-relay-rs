@@ -110,10 +110,7 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 pub async fn download_instaloader(shortcode: &str) -> Result<DownloadResult> {
-    fn get_env_var(name: &str) -> Result<String> {
-        env::var(name).map_err(|_| Error::env(name))
-    }
-    let session_file = get_env_var("IG_SESSION_PATH")?;
+    let session_file = env::var("IG_SESSION_PATH").unwrap_or_else(|_| "/app/ig-session".into());
 
     let args = [
         "--sessionfile",

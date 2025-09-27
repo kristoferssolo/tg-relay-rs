@@ -26,8 +26,8 @@ pub enum Error {
     #[error("join error: {0}")]
     Join(#[from] tokio::task::JoinError),
 
-    #[error("rate limit exceeded")]
-    RateLimit,
+    #[error("environment variable `{0}` not found")]
+    EnvNotFound(String),
 
     #[error("other: {0}")]
     Other(String),
@@ -52,6 +52,11 @@ impl Error {
     #[inline]
     pub fn validation_falied(text: impl Into<String>) -> Self {
         Self::ValidationFailed(text.into())
+    }
+
+    #[inline]
+    pub fn env(text: impl Into<String>) -> Self {
+        Self::EnvNotFound(text.into())
     }
 }
 

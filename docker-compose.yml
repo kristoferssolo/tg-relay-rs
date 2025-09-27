@@ -7,9 +7,11 @@ services:
         BINARY_NAME: tg-relay-rs
     environment:
       TELOXIDE_TOKEN: ${TELOXIDE_TOKEN}
-      COOKIES_PATH: /app/yt-cookies.txt
+      COOKIES_PATH: ${YT_COOKIES_PATH:-/app/yt-cookies.txt}
+      SESSION_PATH: ${IG_SESSION_PATH:-/app/ig-session}
       RUST_LOG: ${RUST_LOG:-info}
     restart: unless-stopped
     volumes:
       - ./comments.txt:/app/comments.txt:ro
-      - /etc/secrets/yt-cookies.txt:/app/yt-cookies.txt:rw
+      - /etc/secrets/ig-session:${IG_SESSION_PATH:-/app/ig-session}:ro
+      - /etc/secrets/yt-cookies.txt:${YT_COOKIES_PATH:-/app/yt-cookies.txt}:rw

@@ -1,8 +1,15 @@
+#[cfg(feature = "instagram")]
 mod instagram;
+#[cfg(feature = "youtube")]
 mod youtube;
 
 use crate::error::Result;
 use teloxide::{Bot, types::ChatId};
+
+#[cfg(feature = "instagram")]
+pub use instagram::InstagramHandler;
+#[cfg(feature = "youtube")]
+pub use youtube::YouTubeShortsHandler;
 
 #[async_trait::async_trait]
 pub trait SocialHandler: Send + Sync {
@@ -25,6 +32,3 @@ impl Clone for Box<dyn SocialHandler> {
         self.box_clone()
     }
 }
-
-pub use instagram::InstagramHandler;
-pub use youtube::YouTubeShortsHandler;

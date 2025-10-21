@@ -29,6 +29,11 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
 url = "2.5"
 
+[features]
+default = ["instagram", "youtube"]
+instagram = []
+youtube = []
+
 [lints.clippy]
 pedantic = "warn"
 nursery = "warn"

@@ -8,7 +8,6 @@ use crate::{
 use futures::{StreamExt, stream};
 use std::{
     cmp::min,
-    env,
     ffi::OsStr,
     fs::{self, metadata},
     path::{Path, PathBuf},
@@ -109,6 +108,7 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 /// # Errors
 ///
 /// - Propagates `run_command_in_tempdir` errors.
+#[cfg(feature = "instagram")]
 pub async fn download_instaloader(shortcode: &str) -> Result<DownloadResult> {
     let args = [
         "--dirname-pattern=.",
@@ -126,6 +126,7 @@ pub async fn download_instaloader(shortcode: &str) -> Result<DownloadResult> {
 /// # Errors
 ///
 /// - Propagates `run_command_in_tempdir` errors.
+#[cfg(feature = "youtube")]
 pub async fn download_ytdlp<P: AsRef<Path>>(
     url: &str,
     cookies_path: Option<P>,

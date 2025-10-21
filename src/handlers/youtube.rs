@@ -13,10 +13,8 @@ static SHORTCODE_RE: OnceLock<Regex> = OnceLock::new();
 
 fn shortcode_regex() -> &'static Regex {
     SHORTCODE_RE.get_or_init(|| {
-        Regex::new(
-            r"https?://(?:www\.)?(?:youtube\.com/shorts/[A-Za-z0-9_-]+(?:\?[^\s]*)?|youtu\.be/[A-Za-z0-9_-]+(?:\?[^\s]*)?)",
-        )
-        .expect("filed to compile regex")
+        Regex::new(r"https?://(?:www\.)?(?:youtube\.com/shorts/[A-Za-z0-9_-]+(?:\?[^\s]*)?")
+            .expect("filed to compile regex")
     })
 }
 

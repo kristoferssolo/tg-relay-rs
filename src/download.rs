@@ -104,7 +104,7 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
     })
 }
 
-/// Download an Instagram shortcode using instaloader (wrapper).
+/// Download a Instagram URL with yt-dlp.
 ///
 /// # Errors
 ///
@@ -128,6 +128,11 @@ pub async fn download_instagram(url: &str) -> Result<DownloadResult> {
     run_command_in_tempdir("yt-dlp", &args_ref).await
 }
 
+/// Download a Tiktok URL with yt-dlp.
+///
+/// # Errors
+///
+/// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "tiktok")]
 pub async fn download_tiktok(url: &str) -> Result<DownloadResult> {
     let base_args = ["--extractor-args", "tiktok:"];
@@ -145,6 +150,17 @@ pub async fn download_tiktok(url: &str) -> Result<DownloadResult> {
     let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
 
     run_command_in_tempdir("yt-dlp", &args_ref).await
+}
+
+/// Download a Twitter URL with yt-dlp.
+///
+/// # Errors
+///
+/// - Propagates `run_command_in_tempdir` errors.
+#[cfg(feature = "twitter")]
+pub async fn download_twitter(url: &str) -> Result<DownloadResult> {
+    let args = ["--extractor-args", "twitter:", url];
+    run_command_in_tempdir("yt-dlp", &args).await
 }
 
 /// Download a URL with yt-dlp.

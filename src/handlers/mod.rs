@@ -2,6 +2,8 @@
 mod instagram;
 #[cfg(feature = "tiktok")]
 mod tiktok;
+#[cfg(feature = "twitter")]
+mod twitter;
 #[cfg(feature = "youtube")]
 mod youtube;
 
@@ -12,6 +14,8 @@ use teloxide::{Bot, types::ChatId};
 pub use instagram::InstagramHandler;
 #[cfg(feature = "tiktok")]
 pub use tiktok::TiktokHandler;
+#[cfg(feature = "twitter")]
+pub use twitter::TwitterHandler;
 #[cfg(feature = "youtube")]
 pub use youtube::YouTubeShortsHandler;
 

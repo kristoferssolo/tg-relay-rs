@@ -30,9 +30,10 @@ tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
 url = "2.5"
 
 [features]
-default = ["instagram", "youtube"]
+default = ["instagram", "youtube", "tiktok"]
 instagram = []
 youtube = []
+tiktok = []
 
 [lints.clippy]
 pedantic = "warn"

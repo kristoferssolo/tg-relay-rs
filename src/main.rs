@@ -32,6 +32,8 @@ async fn main() -> color_eyre::Result<()> {
         Arc::new(tg_relay_rs::handlers::InstagramHandler),
         #[cfg(feature = "youtube")]
         Arc::new(tg_relay_rs::handlers::YouTubeShortsHandler),
+        #[cfg(feature = "tiktok")]
+        Arc::new(tg_relay_rs::handlers::TiktokHandler),
     ];
 
     teloxide::repl(bot.clone(), move |bot: Bot, msg: Message| {

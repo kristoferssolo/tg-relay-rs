@@ -128,6 +128,25 @@ pub async fn download_instagram(url: &str) -> Result<DownloadResult> {
     run_command_in_tempdir("yt-dlp", &args_ref).await
 }
 
+#[cfg(feature = "tiktok")]
+pub async fn download_tiktok(url: &str) -> Result<DownloadResult> {
+    let base_args = ["--extractor-args", "tiktok:"];
+    let mut args = base_args
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+
+    if let Ok(cookies_path) = env::var("IG_SESSION_COOKIE_PATH") {
+        args.extend(["--cookies".into(), cookies_path]);
+    }
+
+    args.push(url.into());
+
+    let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
+
+    run_command_in_tempdir("yt-dlp", &args_ref).await
+}
+
 /// Download a URL with yt-dlp.
 ///
 /// # Errors

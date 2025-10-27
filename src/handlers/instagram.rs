@@ -1,4 +1,4 @@
-use crate::download::{download_instaloader, process_download_result};
+use crate::download::{download_instagram, process_download_result};
 use crate::error::Result;
 use crate::handlers::SocialHandler;
 use regex::Regex;
@@ -42,8 +42,8 @@ impl SocialHandler for InstagramHandler {
     }
 
     async fn handle(&self, bot: &Bot, chat_id: ChatId, url: String) -> Result<()> {
-        info!(handler = %self.name(), url = %url, "handling instagram code");
-        let dr = download_instaloader(&url).await?;
+        info!(handler = %self.name(), url = %url, "handling instagram url");
+        let dr = download_instagram(&url).await?;
         process_download_result(bot, chat_id, dr).await
     }
 

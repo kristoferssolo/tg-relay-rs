@@ -110,7 +110,7 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "instagram")]
-pub async fn download_instaloader(url: &str) -> Result<DownloadResult> {
+pub async fn download_instagram(url: &str) -> Result<DownloadResult> {
     let base_args = ["--extractor-args", "instagram:"];
     let mut args = base_args
         .iter()

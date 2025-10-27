@@ -1,3 +1,4 @@
+pub mod commands;
 pub mod comments;
 pub mod download;
 pub mod error;

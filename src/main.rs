@@ -1,7 +1,8 @@
 use dotenv::dotenv;
 use std::sync::Arc;
-use teloxide::{Bot, prelude::Requester, respond, types::Message};
+use teloxide::{Bot, prelude::Requester, repls::CommandReplExt, respond, types::Message};
 use tg_relay_rs::{
+    commands::{Command, answer},
     comments::{Comments, init_global_comments},
     handlers::SocialHandler,
     telemetry::setup_logger,
@@ -38,6 +39,8 @@ async fn main() -> color_eyre::Result<()> {
         Arc::new(tg_relay_rs::handlers::TwitterHandler),
     ];
 
+    Command::repl(bot.clone(), answer).await;
+
     teloxide::repl(bot.clone(), move |bot: Bot, msg: Message| {
         // clone the handlers vector into the closure
         let handlers = handlers.clone();
@@ -58,7 +61,7 @@ async fn main() -> color_eyre::Result<()> {
                                     .await;
                             }
                         });
-                        // if one handler matcher, stop checking
+                        // if one handler matched, stop checking
                         break;
                     }
                 }

@@ -1,21 +1,16 @@
 use crate::handlers::SocialHandler;
+use crate::lazy_regex;
 use crate::{
     download::{download_ytdlp, process_download_result},
     error::Result,
 };
-use regex::Regex;
-use std::sync::OnceLock;
 use teloxide::{Bot, types::ChatId};
 use tracing::info;
 
-static SHORTCODE_RE: OnceLock<Regex> = OnceLock::new();
-
-fn shortcode_regex() -> &'static Regex {
-    SHORTCODE_RE.get_or_init(|| {
-        Regex::new(r"https?:\/\/(?:www\.)?youtube\.com\/shorts\/[A-Za-z0-9_-]+(?:\?[^\s]*)?")
-            .expect("filed to compile regex")
-    })
-}
+lazy_regex!(
+    URL_RE,
+    r#"https?:\/\/(?:www\.)?youtube\.com\/shorts\/[A-Za-z0-9_-]+(?:\?[^\s]*)?"#
+);
 
 /// Handler for `YouTube Shorts` (and short youtu.be links)
 #[derive(Clone, Default)]
@@ -36,7 +31,7 @@ impl SocialHandler for YouTubeShortsHandler {
     }
 
     fn try_extract(&self, text: &str) -> Option<String> {
-        shortcode_regex().find(text).map(|m| m.as_str().to_owned())
+        regex().find(text).map(|m| m.as_str().to_owned())
     }
 
     async fn handle(&self, bot: &Bot, chat_id: ChatId, url: String) -> Result<()> {

@@ -1,21 +1,14 @@
 use crate::download::{download_instagram, process_download_result};
 use crate::error::Result;
 use crate::handlers::SocialHandler;
-use regex::Regex;
-use std::sync::OnceLock;
+use crate::lazy_regex;
 use teloxide::{Bot, types::ChatId};
 use tracing::info;
 
-static SHORTCODE_RE: OnceLock<Regex> = OnceLock::new();
-
-fn shortcode_regex() -> &'static Regex {
-    SHORTCODE_RE.get_or_init(|| {
-        Regex::new(
-            r"https?://(?:www\.)?(?:instagram\.com|instagr\.am)/(?:p|reel|tv)/([A-Za-z0-9_-]+)",
-        )
-        .expect("filed to compile regex")
-    })
-}
+lazy_regex!(
+    URL_RE,
+    r#"https?://(?:www\.)?(?:instagram\.com|instagr\.am)/(?:p|reel|tv)/([A-Za-z0-9_-]+)"#
+);
 
 /// Handler for Instagram posts / reels / tv
 #[derive(Clone, Default)]
@@ -36,7 +29,7 @@ impl SocialHandler for InstagramHandler {
     }
 
     fn try_extract(&self, text: &str) -> Option<String> {
-        shortcode_regex()
+        regex()
             .captures(text)
             .and_then(|c| c.get(0).map(|m| m.as_str().to_owned()))
     }

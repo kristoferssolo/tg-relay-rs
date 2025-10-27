@@ -1,22 +1,17 @@
 use crate::{
     download::{download_tiktok, process_download_result},
     error::Result,
+    lazy_regex,
 };
-use regex::Regex;
-use std::sync::OnceLock;
 use teloxide::{Bot, types::ChatId};
 use tracing::info;
 
 use crate::handlers::SocialHandler;
 
-static SHORTCODE_RE: OnceLock<Regex> = OnceLock::new();
-
-fn shortcode_regex() -> &'static Regex {
-    SHORTCODE_RE.get_or_init(|| {
-        Regex::new(r"https?://(?:www\.)?(?:vm|vt|tt|tik)\.tiktok\.com/([A-Za-z0-9_-]+)[/?#]?")
-            .expect("filed to compile regex")
-    })
-}
+lazy_regex!(
+    URL_RE,
+    r#"https?://(?:www\.)?(?:vm|vt|tt|tik)\.tiktok\.com/([A-Za-z0-9_-]+)[/?#]?"#
+);
 
 /// Handler for Tiktok
 #[derive(Clone, Default)]
@@ -37,7 +32,7 @@ impl SocialHandler for TiktokHandler {
     }
 
     fn try_extract(&self, text: &str) -> Option<String> {
-        shortcode_regex()
+        regex()
             .captures(text)
             .and_then(|c| c.get(0).map(|m| m.as_str().to_owned()))
     }

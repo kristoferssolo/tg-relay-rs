@@ -19,6 +19,17 @@ pub use twitter::TwitterHandler;
 #[cfg(feature = "youtube")]
 pub use youtube::YouTubeShortsHandler;
 
+#[macro_export]
+macro_rules! lazy_regex {
+    ($name:ident, $pattern:expr) => {
+        static $name: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+
+        fn regex() -> &'static regex::Regex {
+            $name.get_or_init(|| regex::Regex::new($pattern).expect("failed to compile regex"))
+        }
+    };
+}
+
 #[async_trait::async_trait]
 pub trait SocialHandler: Send + Sync {
     /// Short name used for logging etc.

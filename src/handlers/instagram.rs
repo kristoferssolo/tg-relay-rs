@@ -38,12 +38,12 @@ impl SocialHandler for InstagramHandler {
     fn try_extract(&self, text: &str) -> Option<String> {
         shortcode_regex()
             .captures(text)
-            .and_then(|c| c.get(1).map(|m| m.as_str().to_owned()))
+            .and_then(|c| c.get(0).map(|m| m.as_str().to_owned()))
     }
 
-    async fn handle(&self, bot: &Bot, chat_id: ChatId, shortcode: String) -> Result<()> {
-        info!(handler = %self.name(), shortcode = %shortcode, "handling instagram code");
-        let dr = download_instaloader(&shortcode).await?;
+    async fn handle(&self, bot: &Bot, chat_id: ChatId, url: String) -> Result<()> {
+        info!(handler = %self.name(), url = %url, "handling instagram code");
+        let dr = download_instaloader(&url).await?;
         process_download_result(bot, chat_id, dr).await
     }
 

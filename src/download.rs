@@ -136,7 +136,7 @@ pub async fn download_tiktok(url: &str) -> Result<DownloadResult> {
         .map(ToString::to_string)
         .collect::<Vec<_>>();
 
-    if let Ok(cookies_path) = env::var("IG_SESSION_COOKIE_PATH") {
+    if let Ok(cookies_path) = env::var("TIKTOK_SESSION_COOKIE_PATH") {
         args.extend(["--cookies".into(), cookies_path]);
     }
 

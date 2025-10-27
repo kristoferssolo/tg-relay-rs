@@ -109,7 +109,7 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "instagram")]
-pub async fn download_instagram(url: &str) -> Result<DownloadResult> {
+pub async fn download_instagram(url: impl Into<String>) -> Result<DownloadResult> {
     let base_args = ["--extractor-args", "instagram:"];
     let mut args = base_args
         .iter()
@@ -133,7 +133,7 @@ pub async fn download_instagram(url: &str) -> Result<DownloadResult> {
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "tiktok")]
-pub async fn download_tiktok(url: &str) -> Result<DownloadResult> {
+pub async fn download_tiktok(url: impl Into<String>) -> Result<DownloadResult> {
     let base_args = ["--extractor-args", "tiktok:"];
     let mut args = base_args
         .iter()
@@ -157,8 +157,8 @@ pub async fn download_tiktok(url: &str) -> Result<DownloadResult> {
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "twitter")]
-pub async fn download_twitter(url: &str) -> Result<DownloadResult> {
-    let args = ["--extractor-args", "twitter:", url];
+pub async fn download_twitter(url: impl Into<String>) -> Result<DownloadResult> {
+    let args = ["--extractor-args", "twitter:", &url.into()];
     run_command_in_tempdir("yt-dlp", &args).await
 }
 
@@ -168,7 +168,7 @@ pub async fn download_twitter(url: &str) -> Result<DownloadResult> {
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "youtube")]
-pub async fn download_ytdlp(url: &str) -> Result<DownloadResult> {
+pub async fn download_youtube(url: impl Into<String>) -> Result<DownloadResult> {
     let args = [
         "--no-playlist",
         "-t",
@@ -181,7 +181,7 @@ pub async fn download_ytdlp(url: &str) -> Result<DownloadResult> {
         "-f",
         "--postprocessor-args",
         "ffmpeg:-vf setsar=1 -c:v libx264 -crf 28 -preset ultrafast -maxrate 800k -bufsize 1600k -vf scale=854:480 -c:a aac -b:a 64k -movflags +faststart",
-        url,
+        &url.into(),
     ];
 
     run_command_in_tempdir("yt-dlp", &args).await

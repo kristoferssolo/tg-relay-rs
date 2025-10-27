@@ -1,10 +1,9 @@
 use dotenv::dotenv;
-use std::sync::Arc;
 use teloxide::{Bot, prelude::Requester, repls::CommandReplExt, respond, types::Message};
 use tg_relay_rs::{
     commands::{Command, answer},
     comments::{Comments, init_global_comments},
-    handlers::SocialHandler,
+    handler::create_handlers,
     telemetry::setup_logger,
 };
 use tracing::{error, info, warn};
@@ -28,16 +27,7 @@ async fn main() -> color_eyre::Result<()> {
     let bot = Bot::from_env();
     info!("bot starting");
 
-    let handlers: Vec<Arc<dyn SocialHandler>> = vec![
-        #[cfg(feature = "instagram")]
-        Arc::new(tg_relay_rs::handlers::InstagramHandler),
-        #[cfg(feature = "youtube")]
-        Arc::new(tg_relay_rs::handlers::YouTubeShortsHandler),
-        #[cfg(feature = "tiktok")]
-        Arc::new(tg_relay_rs::handlers::TiktokHandler),
-        #[cfg(feature = "twitter")]
-        Arc::new(tg_relay_rs::handlers::TwitterHandler),
-    ];
+    let handlers = create_handlers();
 
     Command::repl(bot.clone(), answer).await;
 
@@ -46,7 +36,7 @@ async fn main() -> color_eyre::Result<()> {
         let handlers = handlers.clone();
         async move {
             if let Some(text) = msg.text() {
-                for handler in handlers {
+                for handler in handlers.iter() {
                     if let Some(id) = handler.try_extract(text) {
                         let handler = handler.clone();
                         let bot_for_task = bot.clone();

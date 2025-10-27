@@ -1,5 +1,5 @@
 use dotenv::dotenv;
-use std::{env, sync::Arc};
+use std::sync::Arc;
 use teloxide::{Bot, prelude::Requester, respond, types::Message};
 use tg_relay_rs::{
     comments::{Comments, init_global_comments},
@@ -7,17 +7,6 @@ use tg_relay_rs::{
     telemetry::setup_logger,
 };
 use tracing::{error, info, warn};
-
-macro_rules! add_handler_if_enabled {
-    ($handlers:expr, $feature:expr, $handler:expr) => {
-        #[cfg(feature = $feature)]
-        {
-            if is_handler_enabled($feature) {
-                $handlers.push(Arc::new($handler));
-            }
-        }
-    };
-}
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
@@ -38,18 +27,12 @@ async fn main() -> color_eyre::Result<()> {
     let bot = Bot::from_env();
     info!("bot starting");
 
-    let mut handlers: Vec<Arc<dyn SocialHandler>> = Vec::new();
-
-    add_handler_if_enabled!(
-        handlers,
-        "instagram",
-        tg_relay_rs::handlers::InstagramHandler
-    );
-    add_handler_if_enabled!(
-        handlers,
-        "youtube",
-        tg_relay_rs::handlers::YouTubeShortsHandler
-    );
+    let handlers: Vec<Arc<dyn SocialHandler>> = vec![
+        #[cfg(feature = "instagram")]
+        Arc::new(tg_relay_rs::handlers::InstagramHandler),
+        #[cfg(feature = "youtube")]
+        Arc::new(tg_relay_rs::handlers::YouTubeShortsHandler),
+    ];
 
     teloxide::repl(bot.clone(), move |bot: Bot, msg: Message| {
         // clone the handlers vector into the closure
@@ -82,12 +65,4 @@ async fn main() -> color_eyre::Result<()> {
     .await;
 
     Ok(())
-}
-
-fn has_env(key: &str) -> bool {
-    !matches!(env::var(key), Ok(val) if val.trim().eq_ignore_ascii_case("false"))
-}
-
-fn is_handler_enabled(handler_key: &str) -> bool {
-    has_env(&handler_key.to_uppercase())
 }

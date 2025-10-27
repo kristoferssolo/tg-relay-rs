@@ -8,6 +8,7 @@ use crate::{
 use futures::{StreamExt, stream};
 use std::{
     cmp::min,
+    env,
     ffi::OsStr,
     fs::{self, metadata},
     path::{Path, PathBuf},
@@ -110,7 +111,14 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "instagram")]
 pub async fn download_instaloader(shortcode: &str) -> Result<DownloadResult> {
+    fn get_env_var(name: &str) -> Result<String> {
+        env::var(name).map_err(|_| Error::env(name))
+    }
+    let session_file = get_env_var("IG_SESSION_PATH")?;
+
     let args = [
+        "--sessionfile",
+        &session_file,
         "--dirname-pattern=.",
         "--no-metadata-json",
         "--no-compress-json",

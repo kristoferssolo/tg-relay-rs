@@ -36,9 +36,7 @@ RUN apt-get update -y \
 RUN --mount=type=cache,target=/root/.cache/uv
 
 # Intstall deps
-RUN uv tool install instaloader \
-    && instaloader --version \
-    && uv tool install yt-dlp[default] \
+RUN uv tool install yt-dlp[default] \
     && yt-dlp --version
 
 WORKDIR /app

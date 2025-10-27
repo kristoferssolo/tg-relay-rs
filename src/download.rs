@@ -110,23 +110,23 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "instagram")]
-pub async fn download_instaloader(shortcode: &str) -> Result<DownloadResult> {
-    fn get_env_var(name: &str) -> Result<String> {
-        env::var(name).map_err(|_| Error::env(name))
-    }
-    let session_file = get_env_var("IG_SESSION_PATH")?;
+pub async fn download_instaloader(url: &str) -> Result<DownloadResult> {
+    let base_args = ["--extractor-args", "instagram:"];
+    let mut args = base_args
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
 
-    let args = [
-        "--sessionfile",
-        &session_file,
-        "--dirname-pattern=.",
-        "--no-metadata-json",
-        "--no-compress-json",
-        "--quiet",
-        "--",
-        &format!("-{shortcode}"),
-    ];
-    run_command_in_tempdir("instaloader", &args).await
+    let cookies_path = env::var("COOKIES_PATH").ok();
+    if let Some(cookies) = read_cookies_file(cookies_path) {
+        args.extend(["--cookies".into(), cookies]);
+    }
+
+    args.push(url.into());
+
+    let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
+
+    run_command_in_tempdir("yt-dlp", &args_ref).await
 }
 
 /// Download a URL with yt-dlp.
@@ -135,10 +135,7 @@ pub async fn download_instaloader(shortcode: &str) -> Result<DownloadResult> {
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "youtube")]
-pub async fn download_ytdlp<P: AsRef<Path>>(
-    url: &str,
-    cookies_path: Option<P>,
-) -> Result<DownloadResult> {
+pub async fn download_ytdlp(url: &str) -> Result<DownloadResult> {
     let base_args = [
         "--no-playlist",
         "-t",
@@ -148,8 +145,9 @@ pub async fn download_ytdlp<P: AsRef<Path>>(
         "%(title)s.%(ext)s",
         "--no-warnings",
         "--quiet",
+        "-f",
         "--postprocessor-args",
-        "ffmpeg:-vf setsar=1 -c:v libx264 -crf 20 -preset veryfast -c:a aac -b:a 128k -movflags +faststart",
+        "ffmpeg:-vf setsar=1 -c:v libx264 -crf 28 -preset ultrafast -maxrate 800k -bufsize 1600k -vf scale=854:480 -c:a aac -b:a 64k -movflags +faststart",
     ];
 
     let mut args = base_args
@@ -157,14 +155,9 @@ pub async fn download_ytdlp<P: AsRef<Path>>(
         .map(ToString::to_string)
         .collect::<Vec<_>>();
 
-    if let Some(cookie_path) = cookies_path {
-        let path = cookie_path.as_ref();
-        let path_str = path.to_string_lossy().to_string();
-        if path.exists() {
-            args.extend(["--cookies".into(), path_str]);
-        } else {
-            warn!("Cookies file not found: {path_str}");
-        }
+    let cookies_path = env::var("COOKIES_PATH").ok();
+    if let Some(cookies) = read_cookies_file(cookies_path) {
+        args.extend(["--cookies".into(), cookies]);
     }
 
     args.push(url.into());
@@ -172,6 +165,17 @@ pub async fn download_ytdlp<P: AsRef<Path>>(
     let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
 
     run_command_in_tempdir("yt-dlp", &args_ref).await
+}
+
+fn read_cookies_file<P: AsRef<Path>>(cookies_path: Option<P>) -> Option<String> {
+    if let Some(cookie_path) = cookies_path {
+        let path = cookie_path.as_ref();
+        if path.exists() {
+            return Some(path.to_string_lossy().to_string());
+        }
+        warn!("Cookies file not found: {}", path.display());
+    }
+    None
 }
 
 /// Post-process a `DownloadResult`.

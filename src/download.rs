@@ -34,7 +34,7 @@ pub struct DownloadResult {
 ///
 /// # Arguments
 ///
-/// `cmd` is the command name (e.g. "yt-dlp" or "instaloader").
+/// `cmd` is the command name (e.g. "yt-dlp").
 /// `args` are the command arguments (owned Strings so callers can build dynamic args).
 ///
 /// # Errors
@@ -64,7 +64,6 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
         }
 
         let err = match cmd {
-            "instaloader" => Error::instaloader_failed(stderr),
             "yt-dlp" => Error::ytdlp_failed(stderr),
             _ => Error::Other(format!("{cmd} failed: {stderr}")),
         };

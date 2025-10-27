@@ -5,9 +5,6 @@ pub enum Error {
     #[error("io error: {0}")]
     Io(#[from] tokio::io::Error),
 
-    #[error("instaloader failed: {0}")]
-    InstaloaderFailed(String),
-
     #[error("yt-dpl failed: {0}")]
     YTDLPFailed(String),
 
@@ -37,11 +34,6 @@ impl Error {
     #[inline]
     pub fn other(text: impl Into<String>) -> Self {
         Self::Other(text.into())
-    }
-
-    #[inline]
-    pub fn instaloader_failed(text: impl Into<String>) -> Self {
-        Self::InstaloaderFailed(text.into())
     }
 
     #[inline]

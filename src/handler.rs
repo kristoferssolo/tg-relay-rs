@@ -59,6 +59,7 @@ macro_rules! handler {
     };
 }
 
+#[must_use]
 pub fn create_handlers() -> Arc<[Handler]> {
     [
         handler!(

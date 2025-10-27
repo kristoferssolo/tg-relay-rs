@@ -1,7 +1,6 @@
 use dotenv::dotenv;
 use teloxide::{prelude::*, respond};
 use tg_relay_rs::{
-    commands::{Command, answer},
     comments::{Comments, init_global_comments},
     handler::{Handler, create_handlers},
     telemetry::setup_logger,
@@ -29,8 +28,7 @@ async fn main() -> color_eyre::Result<()> {
 
     let handlers = create_handlers();
 
-    Command::repl(bot.clone(), answer).await;
-
+    // Command::repl(bot.clone(), answer).await;
     teloxide::repl(bot.clone(), move |bot: Bot, msg: Message| {
         // clone the handlers vector into the closure
         let handlers = handlers.clone();

@@ -117,9 +117,8 @@ pub async fn download_instaloader(url: &str) -> Result<DownloadResult> {
         .map(ToString::to_string)
         .collect::<Vec<_>>();
 
-    let cookies_path = env::var("COOKIES_PATH").ok();
-    if let Some(cookies) = read_cookies_file(cookies_path) {
-        args.extend(["--cookies".into(), cookies]);
+    if let Ok(cookies_path) = env::var("IG_SESSION_COOKIE_PATH") {
+        args.extend(["--cookies".into(), cookies_path]);
     }
 
     args.push(url.into());
@@ -136,7 +135,7 @@ pub async fn download_instaloader(url: &str) -> Result<DownloadResult> {
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "youtube")]
 pub async fn download_ytdlp(url: &str) -> Result<DownloadResult> {
-    let base_args = [
+    let args = [
         "--no-playlist",
         "-t",
         "mp4",
@@ -148,34 +147,10 @@ pub async fn download_ytdlp(url: &str) -> Result<DownloadResult> {
         "-f",
         "--postprocessor-args",
         "ffmpeg:-vf setsar=1 -c:v libx264 -crf 28 -preset ultrafast -maxrate 800k -bufsize 1600k -vf scale=854:480 -c:a aac -b:a 64k -movflags +faststart",
+        url,
     ];
 
-    let mut args = base_args
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>();
-
-    let cookies_path = env::var("COOKIES_PATH").ok();
-    if let Some(cookies) = read_cookies_file(cookies_path) {
-        args.extend(["--cookies".into(), cookies]);
-    }
-
-    args.push(url.into());
-
-    let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
-
-    run_command_in_tempdir("yt-dlp", &args_ref).await
-}
-
-fn read_cookies_file<P: AsRef<Path>>(cookies_path: Option<P>) -> Option<String> {
-    if let Some(cookie_path) = cookies_path {
-        let path = cookie_path.as_ref();
-        if path.exists() {
-            return Some(path.to_string_lossy().to_string());
-        }
-        warn!("Cookies file not found: {}", path.display());
-    }
-    None
+    run_command_in_tempdir("yt-dlp", &args).await
 }
 
 /// Post-process a `DownloadResult`.

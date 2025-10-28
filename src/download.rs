@@ -58,11 +58,6 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-
-        if stderr.is_empty() {
-            return Err(Error::Other(format!("{cmd} failed: {stderr}")));
-        }
-
         let err = match cmd {
             "yt-dlp" => Error::ytdlp_failed(stderr),
             _ => Error::Other(format!("{cmd} failed: {stderr}")),
@@ -241,19 +236,16 @@ pub async fn process_download_result(
     }
 
     // deterministic ordering
-    media_items.sort_by(|(p1, _), (p2, _)| p1.cmp(p2));
+    media_items.sort_by_key(|(_, k)| match k {
+        MediaKind::Video => 0,
+        MediaKind::Image => 1,
+        MediaKind::Unknown => 2,
+    });
 
     info!(media_items = media_items.len(), "Sending media to chat");
 
-    // prefer video over image
-    if let Some((path, MediaKind::Video)) = media_items.iter().find(|(_, k)| *k == MediaKind::Video)
-    {
-        return send_media_from_path(bot, chat_id, path.clone(), MediaKind::Video).await;
-    }
-
-    if let Some((path, MediaKind::Image)) = media_items.iter().find(|(_, k)| *k == MediaKind::Image)
-    {
-        return send_media_from_path(bot, chat_id, path.clone(), MediaKind::Image).await;
+    if let Some((path, kind)) = media_items.first() {
+        return send_media_from_path(bot, chat_id, path.clone(), *kind).await;
     }
 
     Err(Error::NoMediaFound)

@@ -121,8 +121,12 @@ pub async fn send_media_from_path(
             if let Some(cap) = caption_opt {
                 request = request.caption(cap);
             }
-            if let Ok(message) = request.await {
-                info!(message_id = message.id.to_string(), "{} sent", kind);
+            match request.await {
+                Ok(message) => info!(message_id = message.id.to_string(), "{} sent", kind),
+                Err(e) => {
+                    error!("Failed to send {}: {e}", kind.to_str());
+                    return Err(Error::Teloxide(e));
+                }
             }
         }};
     }

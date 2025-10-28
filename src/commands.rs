@@ -13,6 +13,11 @@ pub enum Command {
     Curse,
 }
 
+/// Handle a command from the user.
+///
+/// # Errors
+///
+/// Returns a Teloxide error if the message fails to send.
 pub async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
     match cmd {
         Command::Help => {

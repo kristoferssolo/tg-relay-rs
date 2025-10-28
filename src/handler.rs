@@ -7,26 +7,28 @@ use std::{pin::Pin, sync::Arc};
 use teloxide::{Bot, types::ChatId};
 use tracing::info;
 
+type DownloadFn = fn(&str) -> Pin<Box<dyn Future<Output = Result<DownloadResult>> + Send>>;
+
 #[derive(Debug, Clone)]
 pub struct Handler {
     name: &'static str,
     regex: Regex,
-    handler_fn: fn(&str) -> Pin<Box<dyn Future<Output = Result<DownloadResult>> + Send>>,
+    func: DownloadFn,
 }
 
 impl Handler {
-    #[must_use]
+    /// Create a new handler with a regex pattern and download function.
+    ///
+    /// # Errors
+    ///
+    /// Returns `RegexError` if the regex pattern is invalid.
     pub fn new(
         name: &'static str,
         regex_pattern: &'static str,
-        handler_fn: fn(&str) -> Pin<Box<dyn Future<Output = Result<DownloadResult>> + Send>>,
+        func: DownloadFn,
     ) -> std::result::Result<Self, RegexError> {
         let regex = Regex::new(regex_pattern)?;
-        Ok(Self {
-            name,
-            regex,
-            handler_fn,
-        })
+        Ok(Self { name, regex, func })
     }
 
     #[inline]
@@ -35,16 +37,22 @@ impl Handler {
         self.name
     }
 
+    /// Extract a URL matching this handler's regex pattern.
     #[must_use]
-    pub fn try_extract(&self, text: &str) -> Option<String> {
+    pub fn try_extract<'a>(&self, text: &'a str) -> Option<&'a str> {
         self.regex
             .captures(text)
-            .and_then(|c| c.get(0).map(|m| m.as_str().to_owned()))
+            .and_then(|c| c.get(0).map(|m| m.as_str()))
     }
 
-    pub async fn handle(&self, bot: &Bot, chat_id: ChatId, url: String) -> Result<()> {
+    /// Handle a URL by downloading and sending the media.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Error` if download or media processing fails.
+    pub async fn handle(&self, bot: &Bot, chat_id: ChatId, url: &str) -> Result<()> {
         info!(handler = %self.name(), url = %url, "handling url");
-        let dr = (self.handler_fn)(&url).await?;
+        let dr = (self.func)(url).await?;
         process_download_result(bot, chat_id, dr).await
     }
 }

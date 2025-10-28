@@ -17,7 +17,7 @@ use std::{
 use teloxide::{Bot, types::ChatId};
 use tempfile::{TempDir, tempdir};
 use tokio::{fs::read_dir, process::Command};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 const FORBIDDEN_EXTENSIONS: &[&str] = &["json", "txt", "log"];
 
@@ -155,9 +155,6 @@ pub async fn download_youtube(url: impl Into<String>) -> Result<DownloadResult> 
         "--no-playlist",
         "-t",
         "mp4",
-        "--restrict-filenames",
-        "-o",
-        "%(title)s.%(ext)s",
         "--postprocessor-args",
         &config.youtube.postprocessor_args,
     ]
@@ -266,6 +263,7 @@ async fn run_yt_dlp(
     }
     args.push(url.to_string());
 
+    debug!(args = ?args, "downloadting content");
     let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
     run_command_in_tempdir("yt-dlp", &args_ref).await
 }

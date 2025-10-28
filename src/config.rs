@@ -62,7 +62,7 @@ pub fn global_config() -> Config {
 }
 
 impl YoutubeConfig {
-    const DEFAULT_POSTPROCESSOR_ARGS: &'static str = "ffmpeg:-vf setsar=1 -c:v libx264 -crf 20 -preset ultrafast -c:a aac -b:a 128k -movflags +faststart";
+    const DEFAULT_POSTPROCESSOR_ARGS: &'static str = "ffmpeg:-vf setsar=1 -c:v libx264 -crf 20 -preset veryfast -c:a aac -b:a 128k -movflags +faststart";
 
     fn from_env() -> Self {
         Self {

@@ -2,6 +2,7 @@ use dotenv::dotenv;
 use teloxide::{prelude::*, respond};
 use tg_relay_rs::{
     comments::Comments,
+    config::Config,
     handler::{Handler, create_handlers},
     telemetry::setup_logger,
 };
@@ -20,6 +21,10 @@ async fn main() -> color_eyre::Result<()> {
             e
         })
         .unwrap_or_else(|_| Comments::dummy())
+        .init()
+        .expect("failed to initialize comments");
+
+    Config::from_env()
         .init()
         .expect("failed to initialize comments");
 

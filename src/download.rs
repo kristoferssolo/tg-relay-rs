@@ -110,7 +110,7 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "instagram")]
 pub async fn download_instagram(url: impl Into<String>) -> Result<DownloadResult> {
-    let base_args = ["--extractor-args", "instagram:"];
+    let base_args = ["-t", "mp4", "--extractor-args", "instagram:"];
     let mut args = base_args
         .iter()
         .map(ToString::to_string)
@@ -134,7 +134,7 @@ pub async fn download_instagram(url: impl Into<String>) -> Result<DownloadResult
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "tiktok")]
 pub async fn download_tiktok(url: impl Into<String>) -> Result<DownloadResult> {
-    let base_args = ["--extractor-args", "tiktok:"];
+    let base_args = ["-t", "mp4", "--extractor-args", "tiktok:"];
     let mut args = base_args
         .iter()
         .map(ToString::to_string)
@@ -158,7 +158,7 @@ pub async fn download_tiktok(url: impl Into<String>) -> Result<DownloadResult> {
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "twitter")]
 pub async fn download_twitter(url: impl Into<String>) -> Result<DownloadResult> {
-    let args = ["--extractor-args", "twitter:", &url.into()];
+    let args = ["-t", "mp4", "--extractor-args", "twitter:", &url.into()];
     run_command_in_tempdir("yt-dlp", &args).await
 }
 
@@ -169,22 +169,29 @@ pub async fn download_twitter(url: impl Into<String>) -> Result<DownloadResult> 
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "youtube")]
 pub async fn download_youtube(url: impl Into<String>) -> Result<DownloadResult> {
-    let args = [
+    let base_args = [
         "--no-playlist",
         "-t",
         "mp4",
         "--restrict-filenames",
         "-o",
         "%(title)s.%(ext)s",
-        "--no-warnings",
-        "--quiet",
-        "-f",
         "--postprocessor-args",
-        "ffmpeg:-vf setsar=1 -c:v libx264 -crf 28 -preset ultrafast -maxrate 800k -bufsize 1600k -vf scale=854:480 -c:a aac -b:a 64k -movflags +faststart",
-        &url.into(),
+        "ffmpeg:-vf setsar=1 -c:v libx264 -crf 20 -preset veryfast -c:a aac -b:a 128k -movflags +faststart",
     ];
+    let mut args = base_args
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
 
-    run_command_in_tempdir("yt-dlp", &args).await
+    if let Ok(cookies_path) = env::var("YOUTUBE_SESSION_COOKIE_PATH") {
+        args.extend(["--cookies".into(), cookies_path]);
+    }
+    args.push(url.into());
+
+    let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
+
+    run_command_in_tempdir("yt-dlp", &args_ref).await
 }
 
 /// Post-process a `DownloadResult`.

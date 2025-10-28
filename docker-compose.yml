@@ -9,9 +9,11 @@ services:
       TELOXIDE_TOKEN: ${TELOXIDE_TOKEN}
       IG_SESSION_COOKIE_PATH: /app/www.instagram.com_cookies.txt
       TIKTOK_SESSION_COOKIE_PATH: /app/www.tiktok.com_cookies.txt
+      YOUTUBE_SESSION_COOKIE_PATH: /app/www.youtube.com_cookies.txt
       RUST_LOG: ${RUST_LOG:-info}
     restart: unless-stopped
     volumes:
       - ./comments.txt:/app/comments.txt:ro
       - ${IG_SESSION_COOKIE_PATH:-/etc/secrets/www.instagram.com_cookies.txt}:/app/www.instagram.com_cookies.txt:rw
       - ${TIKTOK_SESSION_COOKIE_PATH:-/etc/secrets/www.tiktok.com_cookies.txt}:/app/www.tiktok.com_cookies.txt:rw
+      - ${YOUTUBE_SESSION_COOKIE_PATH:-/etc/secrets/www.youtube.com_cookies.txt}:/app/www.youtube.com_cookies.txt:rw

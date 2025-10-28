@@ -1,3 +1,4 @@
+use crate::config::global_config;
 use crate::{
     error::{Error, Result},
     utils::{
@@ -8,7 +9,6 @@ use crate::{
 use futures::{StreamExt, stream};
 use std::{
     cmp::min,
-    env,
     ffi::OsStr,
     fs::{self, metadata},
     path::{Path, PathBuf},
@@ -105,21 +105,12 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "instagram")]
 pub async fn download_instagram(url: impl Into<String>) -> Result<DownloadResult> {
-    let base_args = ["-t", "mp4", "--extractor-args", "instagram:"];
-    let mut args = base_args
+    let config = global_config();
+    let args = ["-t", "mp4", "--extractor-args", "instagram:"]
         .iter()
         .map(ToString::to_string)
-        .collect::<Vec<_>>();
-
-    if let Ok(cookies_path) = env::var("IG_SESSION_COOKIE_PATH") {
-        args.extend(["--cookies".into(), cookies_path]);
-    }
-
-    args.push(url.into());
-
-    let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
-
-    run_command_in_tempdir("yt-dlp", &args_ref).await
+        .collect();
+    run_yt_dlp(args, config.instagram.cookies_path.as_ref(), &url.into()).await
 }
 
 /// Download a Tiktok URL with yt-dlp.
@@ -129,21 +120,12 @@ pub async fn download_instagram(url: impl Into<String>) -> Result<DownloadResult
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "tiktok")]
 pub async fn download_tiktok(url: impl Into<String>) -> Result<DownloadResult> {
-    let base_args = ["-t", "mp4", "--extractor-args", "tiktok:"];
-    let mut args = base_args
+    let config = global_config();
+    let args = ["-t", "mp4", "--extractor-args", "tiktok:"]
         .iter()
         .map(ToString::to_string)
-        .collect::<Vec<_>>();
-
-    if let Ok(cookies_path) = env::var("TIKTOK_SESSION_COOKIE_PATH") {
-        args.extend(["--cookies".into(), cookies_path]);
-    }
-
-    args.push(url.into());
-
-    let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
-
-    run_command_in_tempdir("yt-dlp", &args_ref).await
+        .collect();
+    run_yt_dlp(args, config.tiktok.cookies_path.as_ref(), &url.into()).await
 }
 
 /// Download a Twitter URL with yt-dlp.
@@ -153,8 +135,12 @@ pub async fn download_tiktok(url: impl Into<String>) -> Result<DownloadResult> {
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "twitter")]
 pub async fn download_twitter(url: impl Into<String>) -> Result<DownloadResult> {
-    let args = ["-t", "mp4", "--extractor-args", "twitter:", &url.into()];
-    run_command_in_tempdir("yt-dlp", &args).await
+    let config = global_config();
+    let args = ["-t", "mp4", "--extractor-args", "twitter:"]
+        .iter()
+        .map(ToString::to_string)
+        .collect();
+    run_yt_dlp(args, config.twitter.cookies_path.as_ref(), &url.into()).await
 }
 
 /// Download a URL with yt-dlp.
@@ -164,7 +150,8 @@ pub async fn download_twitter(url: impl Into<String>) -> Result<DownloadResult> 
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "youtube")]
 pub async fn download_youtube(url: impl Into<String>) -> Result<DownloadResult> {
-    let base_args = [
+    let config = global_config();
+    let args = [
         "--no-playlist",
         "-t",
         "mp4",
@@ -172,21 +159,12 @@ pub async fn download_youtube(url: impl Into<String>) -> Result<DownloadResult> 
         "-o",
         "%(title)s.%(ext)s",
         "--postprocessor-args",
-        "ffmpeg:-vf setsar=1 -c:v libx264 -crf 20 -preset veryfast -c:a aac -b:a 128k -movflags +faststart",
-    ];
-    let mut args = base_args
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>();
-
-    if let Ok(cookies_path) = env::var("YOUTUBE_SESSION_COOKIE_PATH") {
-        args.extend(["--cookies".into(), cookies_path]);
-    }
-    args.push(url.into());
-
-    let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
-
-    run_command_in_tempdir("yt-dlp", &args_ref).await
+        &config.youtube.postprocessor_args,
+    ]
+    .iter()
+    .map(ToString::to_string)
+    .collect();
+    run_yt_dlp(args, config.youtube.cookies_path.as_ref(), &url.into()).await
 }
 
 /// Post-process a `DownloadResult`.
@@ -276,6 +254,20 @@ fn is_potential_media_file(path: &Path) -> bool {
         .iter()
         .chain(IMAGE_EXTSTENSIONS.iter())
         .any(|allowed| allowed.eq_ignore_ascii_case(&ext))
+}
+
+async fn run_yt_dlp(
+    mut args: Vec<String>,
+    cookies_path: Option<&PathBuf>,
+    url: &str,
+) -> Result<DownloadResult> {
+    if let Some(path) = cookies_path {
+        args.extend(["--cookies".to_string(), path.to_string_lossy().to_string()]);
+    }
+    args.push(url.to_string());
+
+    let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
+    run_command_in_tempdir("yt-dlp", &args_ref).await
 }
 
 #[cfg(test)]

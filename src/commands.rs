@@ -1,6 +1,5 @@
+use crate::comments::global_comments;
 use teloxide::{prelude::*, utils::command::BotCommands};
-
-use crate::comments::{Comments, global_comments};
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
@@ -25,9 +24,8 @@ pub async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> 
                 .await?
         }
         Command::Curse => {
-            let comment = global_comments().map(Comments::build_caption);
-            bot.send_message(msg.chat.id, comment.unwrap_or_else(|| "To comment".into()))
-                .await?
+            let comment = global_comments().build_caption();
+            bot.send_message(msg.chat.id, comment).await?
         }
     };
 

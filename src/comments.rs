@@ -7,6 +7,8 @@ use std::{
 };
 use tokio::fs::read_to_string;
 
+static GLOBAL_COMMENTS: OnceLock<Comments> = OnceLock::new();
+
 const DISCLAIMER: &str = "(Roleplay — fictional messages for entertainment.)";
 pub const TELEGRAM_CAPTION_LIMIT: usize = 4096;
 const FALLBACK_COMMENTS: &[&str] = &[
@@ -92,26 +94,28 @@ impl Comments {
     pub fn lines(&self) -> &[String] {
         &self.lines
     }
+
+    /// Initialize the global comments (call once at startup).
+    ///
+    /// # Errors
+    ///
+    /// Returns `Error::Other` when the global is already initialized.
+    pub fn init(self) -> Result<()> {
+        GLOBAL_COMMENTS
+            .set(self)
+            .map_err(|_| Error::other("comments already initialized"))
+    }
 }
 
-static GLOBAL_COMMENTS: OnceLock<Comments> = OnceLock::new();
-
-/// Initialize the global comments (call once at startup).
+/// Get global comments (initialized by `Comments::init(self)`).
 ///
-/// # Errors
+/// # Panics
 ///
-/// - Returns `Error::Other` when the global is already initialized.
-pub fn init_global_comments(comments: Comments) -> Result<()> {
-    GLOBAL_COMMENTS
-        .set(comments)
-        .map_err(|_| Error::other("comments already initialized"))
-}
-
-/// Get global comments (if initialized).
+/// Panics if comments have not been initialized.
 #[inline]
 #[must_use]
-pub fn global_comments() -> Option<&'static Comments> {
-    GLOBAL_COMMENTS.get()
+pub fn global_comments() -> &'static Comments {
+    GLOBAL_COMMENTS.get().expect("comments not initialized")
 }
 
 impl Display for Comments {

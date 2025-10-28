@@ -1,7 +1,7 @@
 use dotenv::dotenv;
 use teloxide::{prelude::*, respond};
 use tg_relay_rs::{
-    comments::{Comments, init_global_comments},
+    comments::Comments,
     handler::{Handler, create_handlers},
     telemetry::setup_logger,
 };
@@ -13,15 +13,15 @@ async fn main() -> color_eyre::Result<()> {
     color_eyre::install().expect("color-eyre install");
     setup_logger();
 
-    let comments = Comments::load_from_file("comments.txt")
+    Comments::load_from_file("comments.txt")
         .await
         .map_err(|e| {
             warn!("failed to laod comments.txt: {}; using dummy comments", e);
             e
         })
-        .unwrap_or_else(|_| Comments::dummy());
-
-    init_global_comments(comments).expect("failed to initialize global comments");
+        .unwrap_or_else(|_| Comments::dummy())
+        .init()
+        .expect("failed to initialize comments");
 
     let bot = Bot::from_env();
     info!("bot starting");

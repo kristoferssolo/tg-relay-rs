@@ -1739,7 +1739,6 @@ dependencies = [
  "infer",
  "rand",
  "regex",
- "serde",
  "teloxide",
  "tempfile",
  "thiserror 2.0.16",

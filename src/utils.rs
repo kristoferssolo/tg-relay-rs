@@ -1,5 +1,5 @@
 use crate::{
-    comments::{Comments, global_comments},
+    comments::global_comments,
     error::{Error, Result},
 };
 use capitalize::Capitalize;
@@ -109,18 +109,13 @@ pub async fn send_media_from_path(
     path: PathBuf,
     kind: MediaKind,
 ) -> Result<()> {
-    let caption_opt = global_comments()
-        .map(Comments::build_caption)
-        .filter(|caption| !caption.is_empty());
-
+    let caption = global_comments().build_caption();
     let input = InputFile::file(path);
 
     macro_rules! send_msg {
         ($request_expr:expr) => {{
             let mut request = $request_expr;
-            if let Some(cap) = caption_opt {
-                request = request.caption(cap);
-            }
+            request = request.caption(caption);
             match request.await {
                 Ok(message) => info!(message_id = message.id.to_string(), "{} sent", kind),
                 Err(e) => {

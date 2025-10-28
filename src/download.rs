@@ -17,7 +17,7 @@ use std::{
 use teloxide::{Bot, types::ChatId};
 use tempfile::{TempDir, tempdir};
 use tokio::{fs::read_dir, process::Command};
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 const FORBIDDEN_EXTENSIONS: &[&str] = &["json", "txt", "log"];
 
@@ -76,7 +76,7 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
         }
     }
 
-    info!(files = files.len(), "Collected files from tempdir");
+    debug!(files = files.len(), "Collected files from tempdir");
 
     if files.is_empty() {
         let dir_contents = fs::read_dir(&cwd)
@@ -177,7 +177,7 @@ pub async fn process_download_result(
     chat_id: ChatId,
     mut dr: DownloadResult,
 ) -> Result<()> {
-    info!(files = dr.files.len(), "Processing download result");
+    debug!(files = dr.files.len(), "Processing download result");
 
     if dr.files.is_empty() {
         return Err(Error::NoMediaFound);
@@ -217,7 +217,7 @@ pub async fn process_download_result(
         MediaKind::Unknown => 2,
     });
 
-    info!(media_items = media_items.len(), "Sending media to chat");
+    debug!(media_items = media_items.len(), "Sending media to chat");
 
     if let Some((path, kind)) = media_items.first() {
         return send_media_from_path(bot, chat_id, path.clone(), *kind).await;

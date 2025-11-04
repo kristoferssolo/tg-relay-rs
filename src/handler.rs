@@ -72,7 +72,7 @@ pub fn create_handlers() -> Arc<[Handler]> {
     [
         handler!(
             "instagram",
-            r"https?://(?:www\.)?(?:instagram\.com|instagr\.am)/(?:p|reel|tv)/([A-Za-z0-9_-]+)",
+            r"https?://(?:www\.)?(?:instagram\.com|instagr\.am)/(?:reel|tv)/([A-Za-z0-9_-]+)",
             crate::download::download_instagram
         ),
         handler!(

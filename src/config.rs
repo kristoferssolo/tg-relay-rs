@@ -98,7 +98,10 @@ impl TwitterConfig {
 }
 
 fn get_path_from_env(key: &str) -> Option<PathBuf> {
-    env::var(key).ok().map(PathBuf::from)
+    env::var(key)
+        .ok()
+        .map(PathBuf::from)
+        .filter(|p| p.is_file())
 }
 
 impl Default for YoutubeConfig {

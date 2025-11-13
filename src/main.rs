@@ -2,7 +2,7 @@ use dotenv::dotenv;
 use teloxide::{prelude::*, respond};
 use tg_relay_rs::{
     comments::Comments,
-    config::Config,
+    config::{Config, global_config},
     handler::{Handler, create_handlers},
     telemetry::setup_logger,
 };
@@ -58,6 +58,9 @@ async fn process_message(bot: &Bot, msg: &Message, handlers: &[Handler]) {
                 let _ = bot
                     .send_message(msg.chat.id, "Failed to fetch media, you foking donkey.")
                     .await;
+                if let Some(chat_id) = global_config().chat_id {
+                    let _ = bot.send_message(chat_id, format!("{err}")).await;
+                }
             }
             return;
         }

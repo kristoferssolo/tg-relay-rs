@@ -1,10 +1,12 @@
 use crate::error::{Error, Result};
 use std::{env, fmt::Debug, path::PathBuf, sync::OnceLock};
+use teloxide::types::ChatId;
 
 static GLOBAL_CONFIG: OnceLock<Config> = OnceLock::new();
 
 #[derive(Debug, Clone, Default)]
 pub struct Config {
+    pub chat_id: Option<ChatId>,
     pub youtube: YoutubeConfig,
     pub instagram: InstagramConfig,
     pub tiktok: TiktokConfig,
@@ -36,7 +38,11 @@ impl Config {
     /// Load configuration from environment variables.
     #[must_use]
     pub fn from_env() -> Self {
+        let chat_id: Option<ChatId> = env::var("CHAT_ID")
+            .ok()
+            .and_then(|id| id.parse::<i64>().ok().map(ChatId));
         Self {
+            chat_id,
             youtube: YoutubeConfig::from_env(),
             instagram: InstagramConfig::from_env(),
             tiktok: TiktokConfig::from_env(),

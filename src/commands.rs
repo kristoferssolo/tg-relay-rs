@@ -17,7 +17,7 @@ pub enum Command {
 /// # Errors
 ///
 /// Returns a Teloxide error if the message fails to send.
-pub async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
+pub async fn answer(bot: &Bot, msg: &Message, cmd: Command) -> ResponseResult<()> {
     match cmd {
         Command::Help => {
             bot.send_message(msg.chat.id, Command::descriptions().to_string())

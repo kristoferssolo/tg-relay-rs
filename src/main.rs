@@ -1,6 +1,7 @@
 use dotenv::dotenv;
-use teloxide::{prelude::*, respond};
+use teloxide::{prelude::*, respond, utils::command::BotCommands};
 use tg_relay_rs::{
+    commands::{Command, answer},
     comments::Comments,
     config::{Config, global_config},
     handler::{Handler, create_handlers},
@@ -17,7 +18,7 @@ async fn main() -> color_eyre::Result<()> {
     Comments::load_from_file("comments.txt")
         .await
         .map_err(|e| {
-            warn!("failed to laod comments.txt: {}; using dummy comments", e);
+            warn!("failed to laod comments.txt: {e}; using dummy comments");
             e
         })
         .unwrap_or_else(|_| Comments::dummy())
@@ -26,17 +27,17 @@ async fn main() -> color_eyre::Result<()> {
 
     Config::from_env()
         .init()
-        .expect("failed to initialize comments");
+        .expect("failed to initialize config");
 
     let bot = Bot::from_env();
     info!("bot starting");
 
     let handlers = create_handlers();
 
-    // Command::repl(bot.clone(), answer).await;
     teloxide::repl(bot.clone(), move |bot: Bot, msg: Message| {
         let handlers = handlers.clone();
         async move {
+            process_cmd(&bot, &msg).await;
             process_message(&bot, &msg, &handlers).await;
             respond(())
         }
@@ -64,5 +65,13 @@ async fn process_message(bot: &Bot, msg: &Message, handlers: &[Handler]) {
             }
             return;
         }
+    }
+}
+
+async fn process_cmd(bot: &Bot, msg: &Message) {
+    if let Some(text) = msg.text()
+        && let Ok(cmd) = Command::parse(text, "guenter")
+    {
+        let _ = answer(bot, msg, cmd).await;
     }
 }

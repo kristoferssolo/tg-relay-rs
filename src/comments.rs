@@ -91,6 +91,7 @@ impl Comments {
 
     /// Get a reference to the underlying lines for debugging or testing.
     #[cfg(test)]
+    #[must_use]
     pub fn lines(&self) -> &[String] {
         &self.lines
     }
@@ -156,7 +157,7 @@ mod tests {
 
         let caption = comments.build_caption();
         assert_eq!(caption.chars().count(), TELEGRAM_CAPTION_LIMIT);
-        assert!(caption.ends_with("..."))
+        assert!(caption.ends_with("..."));
     }
 
     #[test]

@@ -2,6 +2,8 @@ use crate::error::{Error, Result};
 use std::{env, fmt::Debug, path::PathBuf, sync::OnceLock};
 use teloxide::types::ChatId;
 
+pub const FAILED_FETCH_MEDIA_MESSAGE: &str = "Failed to fetch media, you foking donkey.";
+
 static GLOBAL_CONFIG: OnceLock<Config> = OnceLock::new();
 
 #[derive(Debug, Clone, Default)]

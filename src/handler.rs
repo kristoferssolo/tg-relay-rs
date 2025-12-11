@@ -82,7 +82,7 @@ pub fn create_handlers() -> Arc<[Handler]> {
         ),
         handler!(
             "twitter",
-            r"https?://(?:www\.)?twitter\.com/([A-Za-z0-9_]+(?:/[A-Za-z0-9_]+)?)/status/(\d{1,20})",
+            r"https?://(?:www\.)?(?:twitter\.com|x\.com)/([A-Za-z0-9_]+(?:/[A-Za-z0-9_]+)?)/status/(\d{1,20})",
             crate::download::download_twitter
         ),
         handler!(

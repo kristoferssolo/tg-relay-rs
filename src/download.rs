@@ -10,7 +10,7 @@ use futures::{StreamExt, stream};
 use std::{
     cmp::min,
     ffi::OsStr,
-    fs::{self, metadata},
+    fs,
     path::{Path, PathBuf},
     process::Stdio,
 };
@@ -104,13 +104,14 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "instagram")]
-pub async fn download_instagram(url: impl Into<String>) -> Result<DownloadResult> {
+pub async fn download_instagram(url: String) -> Result<DownloadResult> {
     let config = global_config();
-    let args = ["-t", "mp4", "--extractor-args", "instagram:"]
-        .iter()
-        .map(ToString::to_string)
-        .collect();
-    run_yt_dlp(args, config.instagram.cookies_path.as_ref(), &url.into()).await
+    run_yt_dlp(
+        &["-t", "mp4", "--extractor-args", "instagram:"],
+        config.instagram.cookies_path.as_ref(),
+        &url,
+    )
+    .await
 }
 
 /// Download a Tiktok URL with yt-dlp.
@@ -119,13 +120,14 @@ pub async fn download_instagram(url: impl Into<String>) -> Result<DownloadResult
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "tiktok")]
-pub async fn download_tiktok(url: impl Into<String>) -> Result<DownloadResult> {
+pub async fn download_tiktok(url: String) -> Result<DownloadResult> {
     let config = global_config();
-    let args = ["-t", "mp4", "--extractor-args", "tiktok:"]
-        .iter()
-        .map(ToString::to_string)
-        .collect();
-    run_yt_dlp(args, config.tiktok.cookies_path.as_ref(), &url.into()).await
+    run_yt_dlp(
+        &["-t", "mp4", "--extractor-args", "tiktok:"],
+        config.tiktok.cookies_path.as_ref(),
+        &url,
+    )
+    .await
 }
 
 /// Download a Twitter URL with yt-dlp.
@@ -134,13 +136,14 @@ pub async fn download_tiktok(url: impl Into<String>) -> Result<DownloadResult> {
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "twitter")]
-pub async fn download_twitter(url: impl Into<String>) -> Result<DownloadResult> {
+pub async fn download_twitter(url: String) -> Result<DownloadResult> {
     let config = global_config();
-    let args = ["-t", "mp4", "--extractor-args", "twitter:"]
-        .iter()
-        .map(ToString::to_string)
-        .collect();
-    run_yt_dlp(args, config.twitter.cookies_path.as_ref(), &url.into()).await
+    run_yt_dlp(
+        &["-t", "mp4", "--extractor-args", "twitter:"],
+        config.twitter.cookies_path.as_ref(),
+        &url,
+    )
+    .await
 }
 
 /// Download a URL with yt-dlp.
@@ -149,19 +152,20 @@ pub async fn download_twitter(url: impl Into<String>) -> Result<DownloadResult> 
 ///
 /// - Propagates `run_command_in_tempdir` errors.
 #[cfg(feature = "youtube")]
-pub async fn download_youtube(url: impl Into<String>) -> Result<DownloadResult> {
+pub async fn download_youtube(url: String) -> Result<DownloadResult> {
     let config = global_config();
-    let args = [
-        "--no-playlist",
-        "-t",
-        "mp4",
-        "--postprocessor-args",
-        &config.youtube.postprocessor_args,
-    ]
-    .iter()
-    .map(ToString::to_string)
-    .collect();
-    run_yt_dlp(args, config.youtube.cookies_path.as_ref(), &url.into()).await
+    run_yt_dlp(
+        &[
+            "--no-playlist",
+            "-t",
+            "mp4",
+            "--postprocessor-args",
+            &config.youtube.postprocessor_args,
+        ],
+        config.youtube.cookies_path.as_ref(),
+        &url,
+    )
+    .await
 }
 
 /// Post-process a `DownloadResult`.
@@ -183,9 +187,17 @@ pub async fn process_download_result(
         return Err(Error::NoMediaFound);
     }
 
-    // Detect kinds in parallel with limiter concurrency
+    // Detect kinds and validate files in parallel
     let concurrency = min(8, dr.files.len());
     let results = stream::iter(dr.files.drain(..).map(|path| async move {
+        // Check file metadata asynchronously
+        let Ok(meta) = tokio::fs::metadata(&path).await else {
+            return None;
+        };
+        if !meta.is_file() || meta.len() == 0 {
+            return None;
+        }
+
         let kind = detect_media_kind_async(&path).await;
         match kind {
             MediaKind::Unknown => None,
@@ -193,18 +205,10 @@ pub async fn process_download_result(
         }
     }))
     .buffer_unordered(concurrency)
-    .collect::<Vec<Option<(PathBuf, MediaKind)>>>()
+    .collect::<Vec<_>>()
     .await;
 
-    let mut media_items = results
-        .into_iter()
-        .flatten()
-        .filter(|(path, _)| {
-            metadata(path)
-                .map(|m| m.is_file() && m.len() > 0)
-                .unwrap_or(false)
-        })
-        .collect::<Vec<_>>();
+    let mut media_items = results.into_iter().flatten().collect::<Vec<_>>();
 
     if media_items.is_empty() {
         return Err(Error::NoMediaFound);
@@ -254,18 +258,21 @@ fn is_potential_media_file(path: &Path) -> bool {
 }
 
 async fn run_yt_dlp(
-    mut args: Vec<String>,
+    base_args: &[&str],
     cookies_path: Option<&PathBuf>,
     url: &str,
 ) -> Result<DownloadResult> {
-    if let Some(path) = cookies_path {
-        args.extend(["--cookies".to_string(), path.to_string_lossy().to_string()]);
-    }
-    args.push(url.to_string());
+    let cookies_path_str;
+    let mut args = base_args.to_vec();
 
-    debug!(args = ?args, "downloadting content");
-    let args_ref = args.iter().map(String::as_ref).collect::<Vec<_>>();
-    run_command_in_tempdir("yt-dlp", &args_ref).await
+    if let Some(path) = cookies_path {
+        cookies_path_str = path.to_string_lossy();
+        args.extend(["--cookies", &cookies_path_str]);
+    }
+    args.push(url);
+
+    debug!(args = ?args, "downloading content");
+    run_command_in_tempdir("yt-dlp", &args).await
 }
 
 #[cfg(test)]

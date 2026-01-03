@@ -7,7 +7,7 @@ use std::{pin::Pin, sync::Arc};
 use teloxide::{Bot, types::ChatId};
 use tracing::info;
 
-type DownloadFn = fn(&str) -> Pin<Box<dyn Future<Output = Result<DownloadResult>> + Send>>;
+type DownloadFn = fn(String) -> Pin<Box<dyn Future<Output = Result<DownloadResult>> + Send>>;
 
 #[derive(Debug, Clone)]
 pub struct Handler {
@@ -52,7 +52,7 @@ impl Handler {
     /// Returns `Error` if download or media processing fails.
     pub async fn handle(&self, bot: &Bot, chat_id: ChatId, url: &str) -> Result<()> {
         info!(handler = %self.name(), url = %url, "handling url");
-        let dr = (self.func)(url).await?;
+        let dr = (self.func)(url.to_owned()).await?;
         process_download_result(bot, chat_id, dr).await
     }
 }
@@ -60,10 +60,8 @@ impl Handler {
 macro_rules! handler {
     ($feature:expr, $regex:expr, $download_fn:path) => {
         #[cfg(feature = $feature)]
-        Handler::new($feature, $regex, |url| {
-            Box::pin($download_fn(url.to_string()))
-        })
-        .expect(concat!("failed to create ", $feature, " handler"))
+        Handler::new($feature, $regex, |url: String| Box::pin($download_fn(url)))
+            .expect(concat!("failed to create ", $feature, " handler"))
     };
 }
 

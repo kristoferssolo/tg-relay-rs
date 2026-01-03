@@ -35,26 +35,43 @@ impl MediaKind {
     }
 }
 
+/// Check if extension matches any in the given list (case-insensitive).
+#[inline]
+fn ext_matches(ext: &str, extensions: &[&str]) -> bool {
+    extensions.iter().any(|e| e.eq_ignore_ascii_case(ext))
+}
+
+/// Detect media kind from file extension.
+fn detect_from_extension(path: &Path) -> Option<MediaKind> {
+    let ext = path.extension().and_then(OsStr::to_str)?;
+    if ext_matches(ext, VIDEO_EXTSTENSIONS) {
+        return Some(MediaKind::Video);
+    }
+    if ext_matches(ext, IMAGE_EXTSTENSIONS) {
+        return Some(MediaKind::Image);
+    }
+    None
+}
+
+/// Detect media kind from MIME type string.
+fn detect_from_mime(mime_type: &str) -> MediaKind {
+    match mime_type.split('/').next() {
+        Some("video") => MediaKind::Video,
+        Some("image") => MediaKind::Image,
+        _ => MediaKind::Unknown,
+    }
+}
+
 /// Detect media kind first by extension, then by content/magic (sync).
+#[must_use]
 pub fn detect_media_kind(path: &Path) -> MediaKind {
-    if let Some(ext) = path.extension().and_then(OsStr::to_str) {
-        let compare = |e: &&str| e.eq_ignore_ascii_case(ext);
-        if VIDEO_EXTSTENSIONS.iter().any(compare) {
-            return MediaKind::Video;
-        }
-        if IMAGE_EXTSTENSIONS.iter().any(compare) {
-            return MediaKind::Image;
-        }
+    if let Some(kind) = detect_from_extension(path) {
+        return kind;
     }
 
     // Fallback to MIME type detection
     if let Ok(Some(kind)) = infer::get_from_path(path) {
-        let mime_type = kind.mime_type();
-        return match mime_type.split('/').next() {
-            Some("video") => MediaKind::Video,
-            Some("image") => MediaKind::Image,
-            _ => MediaKind::Unknown,
-        };
+        return detect_from_mime(kind.mime_type());
     }
 
     MediaKind::Unknown
@@ -63,36 +80,24 @@ pub fn detect_media_kind(path: &Path) -> MediaKind {
 /// Async/non-blocking detection: check extension first, otherwise read a small
 /// sample asynchronously and run `infer::get` on the buffer.
 pub async fn detect_media_kind_async(path: &Path) -> MediaKind {
-    if let Some(ext) = path.extension().and_then(OsStr::to_str) {
-        let compare = |e: &&str| e.eq_ignore_ascii_case(ext);
-        if VIDEO_EXTSTENSIONS.iter().any(compare) {
-            return MediaKind::Video;
-        }
-        if IMAGE_EXTSTENSIONS.iter().any(compare) {
-            return MediaKind::Image;
-        }
+    if let Some(kind) = detect_from_extension(path) {
+        return kind;
     }
 
     // Read a small prefix (8 KiB) asynchronously and probe
-    match File::open(path).await {
-        Ok(mut file) => {
-            let mut buffer = vec![0u8; 8192];
-            if let Ok(n) = file.read(&mut buffer).await
-                && n > 0
-            {
-                buffer.truncate(n);
-                if let Some(k) = infer::get(&buffer) {
-                    let mt = k.mime_type();
-                    if mt.starts_with("video/") {
-                        return MediaKind::Video;
-                    }
-                    if mt.starts_with("image/") {
-                        return MediaKind::Image;
-                    }
-                }
-            }
+    let Ok(mut file) = File::open(path).await else {
+        warn!(path = ?path.display(), "Failed to open file for media detection");
+        return MediaKind::Unknown;
+    };
+
+    let mut buffer = vec![0u8; 8192];
+    if let Ok(n) = file.read(&mut buffer).await
+        && n > 0
+    {
+        buffer.truncate(n);
+        if let Some(k) = infer::get(&buffer) {
+            return detect_from_mime(k.mime_type());
         }
-        Err(e) => warn!(path = ?path.display(), "Failed to read file for media detection: {e}"),
     }
 
     MediaKind::Unknown

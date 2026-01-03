@@ -1,4 +1,5 @@
 use dotenv::dotenv;
+use std::sync::Arc;
 use teloxide::{prelude::*, respond, utils::command::BotCommands};
 use tg_relay_rs::{
     commands::{Command, answer},
@@ -17,27 +18,26 @@ async fn main() -> color_eyre::Result<()> {
 
     Comments::load_from_file("comments.txt")
         .await
-        .map_err(|e| {
+        .unwrap_or_else(|e| {
             warn!("failed to load comments.txt: {e}; using dummy comments");
-            e
+            Comments::dummy()
         })
-        .unwrap_or_else(|_| Comments::dummy())
         .init()?;
 
     Config::from_env().init()?;
 
     let bot = Bot::from_env();
-    let bot_name = bot.get_me().await?.username().to_owned();
+    let bot_name: Arc<str> = bot.get_me().await?.username().into();
 
-    info!(name = bot_name, "bot starting");
+    info!(name = %bot_name, "bot starting");
 
     let handlers = create_handlers();
 
     teloxide::repl(bot.clone(), move |bot: Bot, msg: Message| {
-        let handlers = handlers.clone();
-        let bot_name_cloned = bot_name.clone();
+        let handlers = Arc::clone(&handlers);
+        let bot_name = Arc::clone(&bot_name);
         async move {
-            process_cmd(&bot, &msg, &bot_name_cloned).await;
+            process_cmd(&bot, &msg, &bot_name).await;
             process_message(&bot, &msg, &handlers).await;
             respond(())
         }
@@ -60,7 +60,7 @@ async fn process_message(bot: &Bot, msg: &Message, handlers: &[Handler]) {
                     .send_message(msg.chat.id, FAILED_FETCH_MEDIA_MESSAGE)
                     .await;
                 if let Some(chat_id) = global_config().chat_id {
-                    let _ = bot.send_message(chat_id, format!("{err}")).await;
+                    let _ = bot.send_message(chat_id, err.to_string()).await;
                 }
             }
             return;

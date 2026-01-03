@@ -37,6 +37,7 @@ async fn main() -> color_eyre::Result<()> {
         let handlers = handlers.clone();
         let bot_name_cloned = bot_name.clone();
         async move {
+            relay_message(&bot, &msg).await;
             process_cmd(&bot, &msg, &bot_name_cloned).await;
             process_message(&bot, &msg, &handlers).await;
             respond(())
@@ -74,5 +75,35 @@ async fn process_cmd(bot: &Bot, msg: &Message, bot_name: &str) {
         && let Err(e) = answer(bot, msg, cmd).await
     {
         error!(%e, "failed to answer command");
+    }
+}
+
+async fn relay_message(bot: &Bot, msg: &Message) {
+    let Some(chat_id) = global_config().chat_id else {
+        return;
+    };
+
+    // Don't relay messages from the relay target itself
+    if msg.chat.id == chat_id {
+        return;
+    }
+
+    let author = msg.from.as_ref().map_or_else(
+        || "Unknown".to_string(),
+        |u| {
+            u.username
+                .as_ref()
+                .map_or_else(|| u.full_name(), |un| format!("@{un}"))
+        },
+    );
+
+    let chat_name = msg.chat.title().unwrap_or("Private chat");
+
+    let text = msg.text().or_else(|| msg.caption()).unwrap_or("");
+
+    let relay_text = format!("[{chat_name}] {author}:\n{text}");
+
+    if let Err(e) = bot.send_message(chat_id, relay_text).await {
+        error!(%e, "failed to relay message");
     }
 }

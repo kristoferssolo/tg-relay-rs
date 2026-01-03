@@ -40,9 +40,10 @@ impl Config {
     /// Load configuration from environment variables.
     #[must_use]
     pub fn from_env() -> Self {
-        let chat_id: Option<ChatId> = env::var("CHAT_ID")
+        let chat_id = env::var("CHAT_ID")
             .ok()
-            .and_then(|id| id.parse::<i64>().ok().map(ChatId));
+            .and_then(|id| id.parse::<i64>().ok())
+            .map(ChatId);
         Self {
             chat_id,
             youtube: YoutubeConfig::from_env(),
@@ -64,9 +65,14 @@ impl Config {
     }
 }
 /// Get global config (initialized by `Config::init(self)`).
+///
+/// # Panics
+///
+/// Panics if config has not been initialized.
+#[inline]
 #[must_use]
-pub fn global_config() -> Config {
-    GLOBAL_CONFIG.get().cloned().unwrap_or_default()
+pub fn global_config() -> &'static Config {
+    GLOBAL_CONFIG.get().expect("config not initialized")
 }
 
 impl YoutubeConfig {

@@ -10,10 +10,10 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef AS builder-rs
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --release --no-default-features --features tiktok --features twitter --features youtube --recipe-path recipe.json
 # Build application
 COPY . .
-RUN cargo build --release --no-default-features -F tiktok -F twitter -F youtube
+RUN cargo build --release --no-default-features --features tiktok --features twitter --features youtube
 
 
 FROM ghcr.io/astral-sh/uv:trixie-slim AS builder-py

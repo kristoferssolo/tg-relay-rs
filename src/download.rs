@@ -106,12 +106,7 @@ async fn run_command_in_tempdir(cmd: &str, args: &[&str]) -> Result<DownloadResu
 #[cfg(feature = "instagram")]
 pub async fn download_instagram(url: String) -> Result<DownloadResult> {
     let config = global_config();
-    run_yt_dlp(
-        &["-t", "mp4", "--extractor-args", "instagram:"],
-        config.instagram.cookies_path.as_ref(),
-        &url,
-    )
-    .await
+    run_yt_dlp(&["-t", "mp4"], config.instagram.cookies_path.as_ref(), &url).await
 }
 
 /// Download a Tiktok URL with yt-dlp.
@@ -122,12 +117,7 @@ pub async fn download_instagram(url: String) -> Result<DownloadResult> {
 #[cfg(feature = "tiktok")]
 pub async fn download_tiktok(url: String) -> Result<DownloadResult> {
     let config = global_config();
-    run_yt_dlp(
-        &["-t", "mp4", "--extractor-args", "tiktok:"],
-        config.tiktok.cookies_path.as_ref(),
-        &url,
-    )
-    .await
+    run_yt_dlp(&["-t", "mp4"], config.tiktok.cookies_path.as_ref(), &url).await
 }
 
 /// Download a Twitter URL with yt-dlp.
@@ -138,12 +128,7 @@ pub async fn download_tiktok(url: String) -> Result<DownloadResult> {
 #[cfg(feature = "twitter")]
 pub async fn download_twitter(url: String) -> Result<DownloadResult> {
     let config = global_config();
-    run_yt_dlp(
-        &["-t", "mp4", "--extractor-args", "twitter:"],
-        config.twitter.cookies_path.as_ref(),
-        &url,
-    )
-    .await
+    run_yt_dlp(&["-t", "mp4"], config.twitter.cookies_path.as_ref(), &url).await
 }
 
 /// Download a URL with yt-dlp.
@@ -154,18 +139,17 @@ pub async fn download_twitter(url: String) -> Result<DownloadResult> {
 #[cfg(feature = "youtube")]
 pub async fn download_youtube(url: String) -> Result<DownloadResult> {
     let config = global_config();
-    run_yt_dlp(
-        &[
-            "--no-playlist",
-            "-t",
-            "mp4",
-            "--postprocessor-args",
-            &config.youtube.postprocessor_args,
-        ],
-        config.youtube.cookies_path.as_ref(),
-        &url,
-    )
-    .await
+    let mut args = vec![
+        "--no-playlist",
+        "-f",
+        "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
+        "--merge-output-format",
+        "mp4",
+    ];
+    if !config.youtube.postprocessor_args.is_empty() {
+        args.extend(["--postprocessor-args", &config.youtube.postprocessor_args]);
+    }
+    run_yt_dlp(&args, config.youtube.cookies_path.as_ref(), &url).await
 }
 
 /// Post-process a `DownloadResult`.

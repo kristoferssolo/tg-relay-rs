@@ -30,8 +30,11 @@ RUN uv python install 3.13
 
 RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
-    pkg-config libssl-dev ca-certificates ffmpeg \
+    pkg-config libssl-dev ca-certificates ffmpeg curl unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Deno (required by yt-dlp for YouTube challenge solving)
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 
 RUN --mount=type=cache,target=/root/.cache/uv
 
